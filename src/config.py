@@ -4,7 +4,7 @@ from pydantic import PostgresDsn
 
 
 class BotConfig(BaseModel):
-    token: str="5816435930:AAGoEM54yRNXqbclwbaqBfHaeV6SJeD1exs"
+    token: str
 
 
 class DBConfig(BaseModel):
@@ -22,15 +22,22 @@ class DBConfig(BaseModel):
     }
 
 
+class PgAdminConfig(BaseModel):
+    email: str
+    password: str
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="AIOGRAM_CONFIG__",
         env_file=(".env.template", ".env"),
+        extra="ignore",
     )
-    run: BotConfig=BotConfig()
-    #db: DBConfig
+    run: BotConfig
+    db: DBConfig
+    pgadmin: PgAdminConfig
 
 
 settings = Settings()
