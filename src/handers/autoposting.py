@@ -10,6 +10,7 @@ from apscheduler.triggers.date import DateTrigger
 from datetime import datetime
 import pendulum
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from core.database import DatabaseManager
 
 router = Router()
 
@@ -34,7 +35,8 @@ scheduler = AsyncIOScheduler()
 
 
 # Функция для публикации поста
-async def publish_post(bot: Bot, post_id: int, db_session: AsyncSession):
+async def publish_post(bot: Bot, post_id: int, db_manager: DatabaseManager):
+    db_session = db_manager.get_async_session()
     async with db_session as session:
         post = await session.get(Post, post_id)
         if not post or post.status != PostStatus.PENDING:
@@ -81,8 +83,8 @@ async def publish_post(bot: Bot, post_id: int, db_session: AsyncSession):
 # Хендлер для команды /create_post
 @router.message(Command("create_post"))
 async def cmd_create_post(
-    message: types.Message, state: FSMContext, db_session: AsyncSession
-):
+    message: types.Message, state: FSMContext, db_manager: DatabaseManager):
+    db_session = db_manager.get_async_session()
     if not await is_admin_or_moderator(message.from_user.id, db_session):
         await message.answer("Только админы и модераторы могут создавать посты.")
         return
@@ -111,8 +113,8 @@ async def cmd_create_post(
 # Хендлер для выбора канала
 @router.callback_query(F.data.startswith("channel_"), CreatePost.select_channel)
 async def select_channel(
-    callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession
-):
+    callback: types.CallbackQuery, state: FSMContext, db_manager: DatabaseManager):
+    db_session = db_manager.get_async_session()
     channel_id = int(callback.data.split("_")[1])
     async with db_session as session:
         channel = await session.get(Channel, channel_id)
@@ -180,8 +182,8 @@ async def add_media(message: types.Message, state: FSMContext):
 # Хендлер для установки времени
 @router.message(CreatePost.set_time)
 async def set_time(
-    message: types.Message, state: FSMContext, db_session: AsyncSession, bot: Bot
-):
+    message: types.Message, state: FSMContext, db_manager: DatabaseManager, bot: Bot):
+    db_session = db_manager.get_async_session()
     try:
         publish_time = pendulum.parse(message.text, strict=False).replace(tzinfo=None)
         if publish_time < datetime.now():
@@ -231,7 +233,8 @@ async def set_time(
 
 # Хендлер для списка запланированных постов
 @router.message(Command("list_scheduled"))
-async def list_scheduled(message: types.Message, db_session: AsyncSession):
+async def list_scheduled(message: types.Message, db_manager: DatabaseManager):
+    db_session = db_manager.get_async_session()
     if not await is_admin_or_moderator(message.from_user.id, db_session):
         await message.answer(
             "Только админы и модераторы могут просматривать запланированные посты."
@@ -262,7 +265,8 @@ async def list_scheduled(message: types.Message, db_session: AsyncSession):
 
 # Хендлер для просмотра поста
 @router.callback_query(F.data.startswith("view_post_"))
-async def view_post(callback: types.CallbackQuery, db_session: AsyncSession):
+async def view_post(callback: types.CallbackQuery, db_manager: DatabaseManager):
+    db_session = db_manager.get_async_session()
     post_id = int(callback.data.split("_")[2])
     async with db_session as session:
         post = await session.get(Post, post_id)
@@ -290,7 +294,8 @@ async def view_post(callback: types.CallbackQuery, db_session: AsyncSession):
 
 # Хендлер для удаления поста
 @router.callback_query(F.data.startswith("delete_post_"))
-async def delete_post(callback: types.CallbackQuery, db_session: AsyncSession):
+async def delete_post(callback: types.CallbackQuery, db_manager: DatabaseManager):
+    db_session = db_manager.get_async_session()
     post_id = int(callback.data.split("_")[2])
     async with db_session as session:
         post = await session.get(Post, post_id)
@@ -311,8 +316,8 @@ async def delete_post(callback: types.CallbackQuery, db_session: AsyncSession):
 # Хендлер для редактирования поста (заглушка, можно расширить)
 @router.callback_query(F.data.startswith("edit_post_"))
 async def edit_post(
-    callback: types.CallbackQuery, state: FSMContext, db_session: AsyncSession
-):
+    callback: types.CallbackQuery, state: FSMContext, db_manager: DatabaseManager):
+    db_session = db_manager.get_async_session()
     post_id = int(callback.data.split("_")[2])
     async with db_session as session:
         post = await session.get(Post, post_id)

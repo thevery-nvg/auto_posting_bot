@@ -1,6 +1,6 @@
 from src.config import settings
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, async_sessionmaker
-DATABASE_URL = "postgresql+asyncpg://bot_user:secret@localhost:5432/bot_db"
+
 
 
 async def init_db():
