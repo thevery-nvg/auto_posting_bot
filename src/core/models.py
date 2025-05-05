@@ -16,7 +16,7 @@ from sqlalchemy.sql import func
 
 import enum
 
-from config import settings
+from src.config import settings
 
 
 class Base(AsyncAttrs, DeclarativeBase):
