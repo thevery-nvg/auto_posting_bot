@@ -36,8 +36,7 @@ async def is_admin(user_id: int, db_session: AsyncSession) -> bool:
 
 # Главное меню админ-панели
 @router.message(Command("admin"))
-async def cmd_admin(message: types.Message, db_manager: DatabaseManager):
-    db_session=db_manager.get_async_session()
+async def cmd_admin(message: types.Message, db_session:AsyncSession):
     if not await is_admin(message.from_user.id, db_session):
         await message.answer("Доступ только для администраторов.")
         return
@@ -54,8 +53,7 @@ async def cmd_admin(message: types.Message, db_manager: DatabaseManager):
 
 # Хендлер для управления модераторами
 @router.callback_query(F.data == "manage_moderators")
-async def manage_moderators(callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def manage_moderators(callback: types.CallbackQuery, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -75,9 +73,7 @@ async def manage_moderators(callback: types.CallbackQuery, db_manager: DatabaseM
 # Хендлер для добавления модератора
 @router.callback_query(F.data == "add_moderator")
 async def start_add_moderator(
-    callback: types.CallbackQuery, state: FSMContext, db_manager: DatabaseManager
-):
-    db_session = db_manager.get_async_session()
+    callback: types.CallbackQuery, state: FSMContext, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -92,8 +88,7 @@ async def start_add_moderator(
 # Хендлер для ввода ID модератора
 @router.message(AddModerator.enter_id)
 async def process_add_moderator(
-    message: types.Message, state: FSMContext, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+    message: types.Message, state: FSMContext, db_session:AsyncSession):
     try:
         user_id = int(message.text)
     except ValueError:
@@ -131,8 +126,7 @@ async def process_add_moderator(
 # Хендлер для удаления модератора
 @router.callback_query(F.data == "remove_moderator")
 async def start_remove_moderator(
-    callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+    callback: types.CallbackQuery, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -159,8 +153,7 @@ async def start_remove_moderator(
 # Хендлер для подтверждения удаления модератора
 @router.callback_query(F.data.startswith("remove_mod_"))
 async def confirm_remove_moderator(
-    callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+    callback: types.CallbackQuery, db_session:AsyncSession):
     user_id = int(callback.data.split("_")[2])
     async with db_session as session:
         user = await session.get(User, user_id)
@@ -187,8 +180,7 @@ async def confirm_remove_moderator(
 
 # Хендлер для списка модераторов
 @router.callback_query(F.data == "list_moderators")
-async def list_moderators(callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def list_moderators(callback: types.CallbackQuery, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -210,8 +202,7 @@ async def list_moderators(callback: types.CallbackQuery, db_manager: DatabaseMan
 
 # Хендлер для управления каналами
 @router.callback_query(F.data == "manage_channels")
-async def manage_channels(callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def manage_channels(callback: types.CallbackQuery, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -231,8 +222,7 @@ async def manage_channels(callback: types.CallbackQuery, db_manager: DatabaseMan
 # Хендлер для добавления канала
 @router.callback_query(F.data == "add_channel")
 async def start_add_channel(
-    callback: types.CallbackQuery, state: FSMContext, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+    callback: types.CallbackQuery, state: FSMContext, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -272,8 +262,7 @@ async def process_channel_name(message: types.Message, state: FSMContext):
 # Хендлер для ввода ID чата
 @router.message(AddChannel.enter_chat_id)
 async def process_chat_id(
-    message: types.Message, state: FSMContext, db_manager: DatabaseManager, bot:Bot):
-    db_session = db_manager.get_async_session()
+    message: types.Message, state: FSMContext, db_session:AsyncSession, bot:Bot):
     data = await state.get_data()
     channel_id = data["channel_id"]
     name = data["name"]
@@ -318,8 +307,7 @@ async def process_chat_id(
 
 # Хендлер для удаления канала
 @router.callback_query(F.data == "remove_channel")
-async def start_remove_channel(callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def start_remove_channel(callback: types.CallbackQuery, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -345,8 +333,7 @@ async def start_remove_channel(callback: types.CallbackQuery, db_manager: Databa
 
 # Хендлер для подтверждения удаления канала
 @router.callback_query(F.data.startswith("remove_channel_"))
-async def confirm_remove_channel(callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def confirm_remove_channel(callback: types.CallbackQuery, db_session:AsyncSession):
     channel_id = int(callback.data.split("_")[2])
     async with db_session as session:
         channel = await session.get(Channel, channel_id)
@@ -373,8 +360,7 @@ async def confirm_remove_channel(callback: types.CallbackQuery, db_manager: Data
 
 # Хендлер для списка каналов
 @router.callback_query(F.data == "list_channels")
-async def list_channels(callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def list_channels(callback: types.CallbackQuery, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -396,8 +382,7 @@ async def list_channels(callback: types.CallbackQuery, db_manager: DatabaseManag
 
 # Хендлер для просмотра статистики
 @router.callback_query(F.data == "view_stats")
-async def view_stats(callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def view_stats(callback: types.CallbackQuery, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -413,15 +398,14 @@ async def view_stats(callback: types.CallbackQuery, db_manager: DatabaseManager)
 
 # Хендлер для показа статистики
 @router.callback_query(F.data == "show_stats")
-async def show_stats(callback: types.CallbackQuery, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def show_stats(callback: types.CallbackQuery, db_session:AsyncSession):
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
 
     async with db_session as session:
         result = await session.execute(
-            select(Stat).join(Channel).filter(Channel.is_active == True)
+            select(Stat).join(Channel).filter(bool(Channel.is_active) is True)
         )
         stats = result.scalars().all()
 
@@ -441,9 +425,8 @@ async def show_stats(callback: types.CallbackQuery, db_manager: DatabaseManager)
 # Хендлер для экспорта статистики в CSV
 @router.callback_query(F.data == "export_stats")
 async def export_stats(
-    callback: types.CallbackQuery, db_manager: DatabaseManager, bot: Bot
+    callback: types.CallbackQuery, db_session:AsyncSession, bot: Bot
 ):
-    db_session = db_manager.get_async_session()
     if not await is_admin(callback.from_user.id, db_session):
         await callback.message.answer("Доступ только для администраторов.")
         return
@@ -484,8 +467,7 @@ async def export_stats(
 
 # Хендлер для просмотра логов
 @router.message(Command("logs"))
-async def cmd_logs(message: types.Message, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def cmd_logs(message: types.Message, db_session:AsyncSession):
     if not await is_admin(message.from_user.id, db_session):
         await message.answer("Доступ только для администраторов.")
         return

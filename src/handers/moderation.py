@@ -29,8 +29,7 @@ class UserAction(StatesGroup):
 
 
 # Функция для проверки прав админа или модератора
-async def is_admin_or_moderator(user_id: int, db_manager: DatabaseManager) -> bool:
-    db_session = db_manager.get_async_session()
+async def is_admin_or_moderator(user_id: int, db_session:AsyncSession) -> bool:
     async with db_session as session:
         user = await session.get(User, user_id)
         return user and user.role in [UserRole.ADMIN, UserRole.MODERATOR]
@@ -38,8 +37,7 @@ async def is_admin_or_moderator(user_id: int, db_manager: DatabaseManager) -> bo
 
 # Функция для проверки комментария на фильтры
 async def check_comment(
-    text: str, channel_id: int, db_manager: DatabaseManager) -> tuple[bool, str]:
-    db_session = db_manager.get_async_session()
+    text: str, channel_id: int, db_session:AsyncSession) -> tuple[bool, str]:
     async with db_session as session:
         result = await session.execute(
             select(Filter).filter_by(channel_id=channel_id, is_active=True)
@@ -62,8 +60,7 @@ async def check_comment(
 
 # Хендлер для обработки новых комментариев
 @router.message(lambda message: message.chat.type in [ChatType.SUPERGROUP, ChatType.PRIVATE])
-async def handle_comment(message: types.Message, db_manager: DatabaseManager, bot: Bot):
-    db_session = db_manager.get_async_session()
+async def handle_comment(message: types.Message, db_session:AsyncSession, bot: Bot):
     # Проверяем, связан ли чат с каналом
     async with db_session as session:
         result = await session.execute(
@@ -107,8 +104,7 @@ async def handle_comment(message: types.Message, db_manager: DatabaseManager, bo
 # Хендлер для команды /ban_user
 @router.message(Command("ban_user"))
 async def cmd_ban_user(
-    message: types.Message, state: FSMContext, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+    message: types.Message, state: FSMContext, db_session:AsyncSession):
     if not await is_admin_or_moderator(message.from_user.id, db_session):
         await message.answer("Только админы и модераторы могут банить пользователей.")
         return
@@ -122,8 +118,7 @@ async def cmd_ban_user(
 # Хендлер для ввода данных бана
 @router.message(UserAction.ban)
 async def process_ban_user(
-    message: types.Message, state: FSMContext, db_manager: DatabaseManager, bot:Bot):
-    db_session = db_manager.get_async_session()
+    message: types.Message, state: FSMContext, db_session:AsyncSession, bot:Bot):
     try:
         user_id, duration = map(int, message.text.split())
     except ValueError:
@@ -185,8 +180,7 @@ async def process_ban_user(
 # Хендлер для команды /unban_user
 @router.message(Command("unban_user"))
 async def cmd_unban_user(
-    message: types.Message, db_manager: DatabaseManager, bot: Bot):
-    db_session = db_manager.get_async_session()
+    message: types.Message, db_session:AsyncSession, bot: Bot):
     if not await is_admin_or_moderator(message.from_user.id, db_session):
         await message.answer(
             "Только админы и модераторы могут разбанивать пользователей."
@@ -242,8 +236,7 @@ async def cmd_unban_user(
 # Хендлер для команды /set_filter
 @router.message(Command("set_filter"))
 async def cmd_set_filter(
-    message: types.Message, state: FSMContext, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+    message: types.Message, state: FSMContext, db_session:AsyncSession):
     if not await is_admin_or_moderator(message.from_user.id, db_session):
         await message.answer("Только админы и модераторы могут настраивать фильтры.")
         return
@@ -272,8 +265,7 @@ async def cmd_set_filter(
 # Хендлер для выбора канала для фильтра
 @router.callback_query(F.data.startswith("filter_channel_"), SetFilter.select_channel)
 async def select_filter_channel(
-    callback: types.CallbackQuery, state: FSMContext, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+    callback: types.CallbackQuery, state: FSMContext, db_session:AsyncSession):
     channel_id = int(callback.data.split("_")[2])
     async with db_session as session:
         channel = await session.get(Channel, channel_id)
@@ -304,8 +296,7 @@ async def enter_keyword(message: types.Message, state: FSMContext):
 # Хендлер для ввода регулярного выражения
 @router.message(SetFilter.enter_regex)
 async def enter_regex(
-    message: types.Message, state: FSMContext, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+    message: types.Message, state: FSMContext, db_session:AsyncSession):
     regex = message.text if message.text != "-" else None
     if regex:
         try:
@@ -341,8 +332,7 @@ async def enter_regex(
 
 # Хендлер для команды /moderate
 @router.message(Command("moderate"))
-async def cmd_moderate(message: types.Message, db_manager: DatabaseManager):
-    db_session = db_manager.get_async_session()
+async def cmd_moderate(message: types.Message, db_session:AsyncSession):
     if not await is_admin_or_moderator(message.from_user.id, db_session):
         await message.answer("Только админы и модераторы могут управлять модерацией.")
         return

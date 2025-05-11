@@ -60,18 +60,18 @@ async def setup_db(dp: Dispatcher):
     dp.workflow_data["db_manager"]=db_manager
 
 
-async def aiogram_on_startup_polling(dp: Dispatcher, bot: Bot) -> None:
+async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await bot.delete_webhook(drop_pending_updates=True)
-    await setup_aiogram(dp)
-    await setup_db(dp)
+    await setup_aiogram(dispatcher)
+    await setup_db(dispatcher)
     logger.info("Bot started")
 
 
-async def aiogram_on_shutdown_polling(dp: Dispatcher, bot: Bot) -> None:
+async def aiogram_on_shutdown_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await bot.session.close()
-    await dp.storage.close()
+    await dispatcher.storage.close()
     # await dp.workflow_data["engine"].dispose()
-    await dp.workflow_data["db_manager"].dispose()
+    await dispatcher.workflow_data["db_manager"].dispose()
     logger.info("Bot stopped")
 
 
@@ -83,15 +83,15 @@ def main() -> None:
         session=session1,
         default=DefaultBotProperties(parse_mode="HTML"),
     )
+
     storage = MemoryStorage()
     dp = Dispatcher(bot=bot, storage=storage)
     dp.startup.register(aiogram_on_startup_polling)
     dp.shutdown.register(aiogram_on_shutdown_polling)
-    asyncio.run(dp.start_polling(bot))
-
     # example
     @dp.message(Command("start"))
     async def cmd_start(message: types.Message, db_session: AsyncSession):
+        logger.info(f"Received message: {message.text}")
         async with db_session as session:
             user = await session.get(User, message.from_user.id)
             if not user:
@@ -102,7 +102,10 @@ def main() -> None:
                 )
                 session.add(user)
                 await session.commit()
-            await message.answer(f"Welcome, {user.role.value}!")
+        await message.answer(f"Welcome, {user.id}!")
+        # await db_session.close()
+
+    asyncio.run(dp.start_polling(bot))
 
 
 if __name__ == "__main__":
