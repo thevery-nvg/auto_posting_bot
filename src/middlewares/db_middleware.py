@@ -1,21 +1,25 @@
 from aiogram import BaseMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.types import Update
 from typing import Callable, Dict, Any, Awaitable
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DatabaseMiddleware(BaseMiddleware):
     async def __call__(
         self,
-        handler: Callable[[Any, Dict[str, Any]], Awaitable[Any]],
-        event: Any,
+        handler: Callable[[Update, Dict[str, Any]], Awaitable[Any]],
+        event: Update,
         data: Dict[str, Any],
     ) -> Any:
-        # Получаем фабрику сессий из данных диспетчера
-        async_session = data["dispatcher"].workflow_data.get("db_manager")
+        # Получаем session_factory из workflow_data диспетчера
+        session_factory = data["dispatcher"].workflow_data["session_factory"]
 
-        # Создаем новую сессию для обработки события
-        # session = async_session.get_async_session()
-        async for session in async_session.get_async_session():
-             data["db_session"] = session
-
-        return await handler(event, data)
+        async with session_factory() as session:
+            data["db_session"] = session
+            try:
+                return await handler(event, data)
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()

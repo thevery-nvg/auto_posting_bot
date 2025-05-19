@@ -1,36 +1,53 @@
 import asyncio
-
+import tenacity
 from aiogram import Dispatcher, Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
-from aiogram.filters import Command
-from aiogram import types
 
-from core.database import init_db, DatabaseManager
-from core.models import User, UserRole
+from core.database import init_db
 from src.middlewares.logging_middleware import LoggingMiddleware
 from src.middlewares.db_middleware import DatabaseMiddleware
 from src.utils.logger import setup_logging
 from src.utils.smart_session import SmartAiohttpSession
 from src.config import settings
+from src.core.models import Channel
 
-from src.handers.autoposting import router as autoposting_router
-from src.handers.moderation import router as moderation_router
 from src.handers.admin import router as admin_router
+
+from utils.connect_to_services import wait_sqlalchemy
+
+
+# async def create_db_connections(dispatcher: Dispatcher) -> None:
+#     logger.debug("Connecting to SQLAlchemy[PostgreSQL]", db="main")
+#     try:
+#         db_pool = await wait_sqlalchemy()
+#     except tenacity.RetryError:
+#         logger.error("Failed to connect to SQLAlchemy[PostgreSQL]", db="main")
+#         exit(1)
+#     else:
+#         logger.debug("Succesfully connected to SQLAlchemy[PostgreSQL]", db="main")
+#     dispatcher["db_pool"] = db_pool
+#
+#
+#
+# async def close_db_connections(dispatcher: Dispatcher) -> None:
+#     if "db_pool" in dispatcher.workflow_data:
+#         db_pool: AsyncSession = dispatcher["db_pool"]
+#         await db_pool.close()
 
 
 def setup_handlers(dp: Dispatcher) -> None:
-    dp.include_router(autoposting_router)
-    dp.include_router(moderation_router)
+    # dp.include_router(autoposting_router)
+    # dp.include_router(moderation_router)
     dp.include_router(admin_router)
 
 
 def setup_middlewares(dp: Dispatcher) -> None:
     dp.update.outer_middleware(LoggingMiddleware())
-    dp.message.middleware(DatabaseMiddleware())
+    dp.update.middleware(DatabaseMiddleware())
 
 
 async def setup_aiogram(dp: Dispatcher) -> None:
@@ -38,26 +55,16 @@ async def setup_aiogram(dp: Dispatcher) -> None:
     setup_middlewares(dp)
 
 
-async def setup_db(dp: Dispatcher):
-    # engine = await init_db()
-    # async_session = sessionmaker(
-    #     bind=engine,
-    #     class_=AsyncSession,
-    #     expire_on_commit=False,
-    #     autoflush=False,
-    #     autocommit=False,
-    # )
-    # dp.workflow_data["engine"] = engine
-    # dp.workflow_data["db_session"] = async_session
+async def setup_db(dispatcher: Dispatcher) -> None:
 
-    db_manager = DatabaseManager(
-        url=str(settings.db.url),
-        echo=settings.db.echo,
-        echo_pool=settings.db.echo_pool,
-        pool_size=settings.db.pool_size,
-        max_overflow=settings.db.max_overflow,
-    )
-    dp.workflow_data["db_manager"]=db_manager
+
+    try:
+        engine, session_factory = await init_db()
+        dispatcher.workflow_data["engine"] = engine
+        dispatcher.workflow_data["session_factory"] = session_factory
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}")
+        raise
 
 
 async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
@@ -70,17 +77,17 @@ async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
 async def aiogram_on_shutdown_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await bot.session.close()
     await dispatcher.storage.close()
-    # await dp.workflow_data["engine"].dispose()
-    await dispatcher.workflow_data["db_manager"].dispose()
-    logger.info("Bot stopped")
+    await dispatcher.workflow_data["engine"].dispose()
+    # await dispatcher.workflow_data["db_manager"].dispose()
+    logger.info("Bot stopping successful")
 
 
 def main() -> None:
     setup_logging(log_level="DEBUG", json_format=False)
-    session1 = SmartAiohttpSession()
+    smart_session = SmartAiohttpSession()
     bot = Bot(
         token=settings.run.token,
-        session=session1,
+        session=smart_session,
         default=DefaultBotProperties(parse_mode="HTML"),
     )
 
@@ -88,22 +95,7 @@ def main() -> None:
     dp = Dispatcher(bot=bot, storage=storage)
     dp.startup.register(aiogram_on_startup_polling)
     dp.shutdown.register(aiogram_on_shutdown_polling)
-    # example
-    @dp.message(Command("start"))
-    async def cmd_start(message: types.Message, db_session: AsyncSession):
-        logger.info(f"Received message: {message.text}")
-        async with db_session as session:
-            user = await session.get(User, message.from_user.id)
-            if not user:
-                user = User(
-                    id=message.from_user.id,
-                    username=message.from_user.username,
-                    role=UserRole.USER,
-                )
-                session.add(user)
-                await session.commit()
-        await message.answer(f"Welcome, {user.id}!")
-        # await db_session.close()
+
 
     asyncio.run(dp.start_polling(bot))
 
@@ -112,4 +104,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        logger.info("Bot stopped by keyboard interrupt")
+        logger.info("Bot stopped by keyboard")

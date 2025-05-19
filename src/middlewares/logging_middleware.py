@@ -8,8 +8,8 @@ from loguru import logger
 
 class LoggingMiddleware(BaseMiddleware):
     """Middleware для логирования входящих обновлений"""
-
-    def _serialize_chat_member(self, member) -> Dict[str, Any]:
+    @staticmethod
+    def _serialize_chat_member(member) -> Dict[str, Any]|None:
         """Сериализация информации об участнике чата"""
         if member is None:
             return None
@@ -65,8 +65,8 @@ class LoggingMiddleware(BaseMiddleware):
             self._log_chat_member_update(event.my_chat_member, "my_chat_member", logger)
         elif event.chat_member:
             self._log_chat_member_update(event.chat_member, "chat_member", logger)
-
-    def _log_message(self, message, logger):
+    @staticmethod
+    def _log_message(message, logger):
         """Логирование входящего сообщения"""
         log_context = {
             "update_type": "message",
@@ -81,9 +81,10 @@ class LoggingMiddleware(BaseMiddleware):
         if message.text:
             log_context["text"] = message.text[:200]  # Ограничиваем длину текста
 
-        logger.bind(**log_context).debug("Received message")
+        logger.bind(**log_context).debug(f"Received message {message.text}")
 
-    def _log_callback_query(self, callback_query, logger):
+    @staticmethod
+    def _log_callback_query(callback_query, logger):
         """Логирование callback query"""
         log_context = {
             "update_type": "callback_query",
@@ -102,7 +103,8 @@ class LoggingMiddleware(BaseMiddleware):
 
         logger.bind(**log_context).debug("Received callback query")
 
-    def _log_inline_query(self, inline_query, logger):
+    @staticmethod
+    def _log_inline_query(inline_query, logger):
         """Логирование inline query"""
         logger.bind(
             update_type="inline_query",

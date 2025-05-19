@@ -1,18 +1,34 @@
 from src.config import settings
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, async_sessionmaker
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+    AsyncEngine,
+    async_sessionmaker,
+    AsyncSession,
+)
+from loguru import logger
 
-
-async def init_db():
+async def init_db() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
     engine = create_async_engine(
-        settings.db.url,
+        str(settings.db.url),
         echo=settings.db.echo,
         echo_pool=settings.db.echo_pool,
         max_overflow=settings.db.max_overflow,
         pool_size=settings.db.pool_size,
     )
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)
-    return engine
+
+    # Проверка подключения
+    async with engine.connect() as conn:
+        msg = await conn.execute(text("SELECT version() as ver;"))
+    logger.info(f"Database connection test successful! {msg.scalars().first()}")
+    session_factory = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+        autocommit=False,
+    )
+    return engine, session_factory
 
 
 class DatabaseManager:
