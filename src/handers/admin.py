@@ -18,8 +18,8 @@ from src.handers.utils import is_user_admin, log_action, check_admin_access
 router = Router(name="admin")
 
 class Channel:
-    def __init__(self, id:int,name:str,is_active:bool,moderation_enabled:bool,notification_chat_id:int,created_at,updated_at):
-        self.id = id
+    def __init__(self, id_:int, name:str, is_active:bool, moderation_enabled:bool, notification_chat_id:int, created_at, updated_at):
+        self.id = id_
         self.name = name
         self.is_active = is_active
         self.moderation_enabled = moderation_enabled
@@ -109,6 +109,7 @@ async def manage_channels(callback_query: types.CallbackQuery, state: FSMContext
     await callback_query.message.edit_text(
         "Управление каналами:", reply_markup=builder.as_markup()
     )
+    await state.update_data(main_message=callback_query)
     await callback_query.answer()
 
 
@@ -126,9 +127,10 @@ async def remove_channel(callback_query: types.CallbackQuery, state: FSMContext)
 async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
     page_size = 5
     data = await state.get_data()
+    main_message = data.get("main_message")
     channels = [
         Channel(
-            id=119933,
+            id_=119933,
             name="test1",
             is_active=True,
             moderation_enabled=True,
@@ -137,7 +139,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119934,
+            id_=119934,
             name="test2",
             is_active=True,
             moderation_enabled=True,
@@ -146,7 +148,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119935,
+            id_=119935,
             name="test3",
             is_active=True,
             moderation_enabled=True,
@@ -155,7 +157,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119936,
+            id_=119936,
             name="test4",
             is_active=True,
             moderation_enabled=True,
@@ -164,7 +166,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119937,
+            id_=119937,
             name="test5",
             is_active=True,
             moderation_enabled=True,
@@ -173,7 +175,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119938,
+            id_=119938,
             name="test6",
             is_active=True,
             moderation_enabled=True,
@@ -182,7 +184,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119939,
+            id_=119939,
             name="test7",
             is_active=True,
             moderation_enabled=True,
@@ -191,7 +193,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119940,
+            id_=119940,
             name="test8",
             is_active=True,
             moderation_enabled=True,
@@ -200,7 +202,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119941,
+            id_=119941,
             name="test9",
             is_active=True,
             moderation_enabled=True,
@@ -209,7 +211,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119942,
+            id_=119942,
             name="test10",
             is_active=True,
             moderation_enabled=True,
@@ -218,7 +220,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119943,
+            id_=119943,
             name="test11",
             is_active=True,
             moderation_enabled=True,
@@ -227,7 +229,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119944,
+            id_=119944,
             name="test12",
             is_active=True,
             moderation_enabled=True,
@@ -236,7 +238,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119945,
+            id_=119945,
             name="test13",
             is_active=True,
             moderation_enabled=True,
@@ -245,7 +247,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119946,
+            id_=119946,
             name="test14",
             is_active=True,
             moderation_enabled=True,
@@ -254,7 +256,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119947,
+            id_=119947,
             name="test15",
             is_active=True,
             moderation_enabled=True,
@@ -263,7 +265,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119948,
+            id_=119948,
             name="test16",
             is_active=True,
             moderation_enabled=True,
@@ -272,7 +274,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119949,
+            id_=119949,
             name="test17",
             is_active=True,
             moderation_enabled=True,
@@ -281,7 +283,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
             updated_at=datetime.now(),
         ),
         Channel(
-            id=119950,
+            id_=119950,
             name="test18",
             is_active=True,
             moderation_enabled=True,
@@ -317,7 +319,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
     builder.button(**goto_main_menu_btn)
     builder.adjust(1)
     await state.set_state(Admin.list_channels)
-    await callback_query.message.edit_text(
+    await main_message.message.edit_text(
         text=message_text,
         reply_markup=builder.as_markup(),
     )
@@ -330,6 +332,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
 async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
     page_size = 5
     data = await state.get_data()
+    main_message = data.get("main_message")
     channels = data.get("channels")
     page = data.get("page")
     total_pages = len(channels) // page_size
@@ -366,7 +369,7 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
     builder.row(*[x for x in navigation if x])
     builder.button(**goto_main_menu_btn)
     message_text = f"📢 Список каналов ({total_pages}):\n\n"
-    await callback_query.message.edit_text(
+    await main_message.message.edit_text(
         text=message_text,
         reply_markup=builder.as_markup(),
     )
@@ -412,18 +415,17 @@ async def channel_details(callback_query: types.CallbackQuery, state: FSMContext
     channel_id = int(callback_query.data.replace("channel_", ""))
     data = await state.get_data()
     channels = data.get("channels")
+    main_message = data.get("main_message")
     channel=None
     for c in channels:
         if c.id == channel_id:
-
             channel=c
             break
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)
     await state.set_state(Admin.channel_details)
     await state.update_data(channel_id=channel_id)
-    await state.update_data(msg_id=callback_query.id)
-    await callback_query.message.edit_text(
+    await main_message.message.edit_text(
         text=details, reply_markup=builder.as_markup()
     )
 
@@ -431,9 +433,10 @@ async def channel_details(callback_query: types.CallbackQuery, state: FSMContext
 @router.callback_query(F.data.startswith("change_name"), Admin.channel_details)
 async def change_channel_name_stage_1(
     callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
-    await bot.send_message(
-        callback_query.message.chat.id, "Введите новое название канала"
-    )
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    await main_message.message.edit_text(
+        text="Введите новое название канала")
     await state.set_state(Admin.change_channel_name)
 
 
@@ -443,7 +446,9 @@ async def change_channel_name_stage_2(
     data = await state.get_data()
     channel_id = data.get("channel_id")
     channels = data.get("channels")
+    main_message = data.get("main_message")
     new_name = message.text
+    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
     channel=None
     for c in channels:
         if c.id == channel_id:
@@ -455,9 +460,12 @@ async def change_channel_name_stage_2(
     builder = get_channel_details_keyboard(channel)
     await state.set_state(Admin.channel_details)
     await state.update_data(channel_id=channel_id,channels=channels)
-    await bot.send_message(
-        chat_id=message.chat.id, text=details, reply_markup=builder.as_markup()
+    await main_message.message.edit_text(
+        text=details, reply_markup=builder.as_markup()
     )
+    # await bot.send_message(
+    #     chat_id=message.chat.id, text=details, reply_markup=builder.as_markup()
+    # )
 
 
 @router.callback_query(F.data.startswith("switch_channel_status_"), Admin.channel_details)
@@ -466,6 +474,7 @@ async def switch_channel_status(
     channel_id = int(callback_query.data.replace("switch_channel_status_", ""))
     data = await state.get_data()
     channels = data.get("channels")
+    main_message = data.get("main_message")
     channel=None
     for c in channels:
         if c.id == channel_id:
@@ -476,7 +485,7 @@ async def switch_channel_status(
     await state.update_data(channels=channels)
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)
-    await callback_query.message.edit_text(
+    await main_message.message.edit_text(
         text=details, reply_markup=builder.as_markup()
     )
 
@@ -486,6 +495,7 @@ async def switch_moderation_status(
     callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
     channel_id = int(callback_query.data.replace("switch_moderation_status_", ""))
     data = await state.get_data()
+    main_message = data.get("main_message")
     channels = data.get("channels")
     channel=None
     for c in channels:
@@ -497,7 +507,7 @@ async def switch_moderation_status(
     await state.update_data(channels=channels)
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)
-    await callback_query.message.edit_text(
+    await main_message.message.edit_text(
         text=details, reply_markup=builder.as_markup()
     )
 
@@ -505,17 +515,19 @@ async def switch_moderation_status(
 async def change_chat_notification_stage_1(
         callback_query: types.CallbackQuery, state: FSMContext, bot: Bot
 ):
+    data = await state.get_data()
+    main_message = data.get("main_message")
     channel_id = int(callback_query.data.replace("change_chat_notification_", ""))
     await state.update_data(channel_id=channel_id)
-    await bot.send_message(
-        callback_query.message.chat.id,"Введите ID чата"
-    )
+    await main_message.message.edit_text(text="Введите новый id чата уведомлений")
+
 
 @router.message(Admin.channel_details)
 async def change_chat_notification_stage_2(
         message: types.Message, state: FSMContext, bot: Bot
 ):
     data = await state.get_data()
+    main_message = data.get("main_message")
     channel_id = data.get("channel_id")
     channels = data.get("channels")
     channel=None
@@ -526,9 +538,9 @@ async def change_chat_notification_stage_2(
             channel=c
             break
     await state.update_data(channels=channels)
+    await message.delete()
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)
     await state.set_state(Admin.channel_details)
-    await bot.send_message(
-        chat_id=message.chat.id, text=details, reply_markup=builder.as_markup()
-    )
+    await main_message.message.edit_text(text=details, reply_markup=builder.as_markup())
+

@@ -47,7 +47,7 @@ def setup_handlers(dp: Dispatcher) -> None:
 
 def setup_middlewares(dp: Dispatcher) -> None:
     dp.update.outer_middleware(LoggingMiddleware())
-    dp.update.middleware(DatabaseMiddleware())
+    #dp.update.middleware(DatabaseMiddleware())
 
 
 async def setup_aiogram(dp: Dispatcher) -> None:
@@ -56,8 +56,6 @@ async def setup_aiogram(dp: Dispatcher) -> None:
 
 
 async def setup_db(dispatcher: Dispatcher) -> None:
-
-
     try:
         engine, session_factory = await init_db()
         dispatcher.workflow_data["engine"] = engine
@@ -70,15 +68,14 @@ async def setup_db(dispatcher: Dispatcher) -> None:
 async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_aiogram(dispatcher)
-    await setup_db(dispatcher)
+    #await setup_db(dispatcher)
     logger.info("Bot started")
 
 
 async def aiogram_on_shutdown_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await bot.session.close()
     await dispatcher.storage.close()
-    await dispatcher.workflow_data["engine"].dispose()
-    # await dispatcher.workflow_data["db_manager"].dispose()
+    #await dispatcher.workflow_data["engine"].dispose()
     logger.info("Bot stopping successful")
 
 
