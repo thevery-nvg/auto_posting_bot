@@ -52,6 +52,15 @@ class Buttons:
     list_posts_callback = "list_posts"
     skip_media_text = "Пропустить"
     skip_media_callback = "skip_media"
+    # Post menu
+    edit_text= "Редактировать"
+    edit_callback = "edit"
+    edit_time_text= "Изменить время публикации"
+    edit_time_callback = "edit_time"
+    edit_add_media_text= "Добавить медиа"
+    edit_add_media_callback = "add_media"
+    edit_remove_media_text = "Удалить медиа"
+    edit_remove_media_callback = "remove_media"
 
     forward_text = "Вперед"
     forward_callback = "#forward#"
@@ -75,6 +84,10 @@ class Admin(StatesGroup):
     manage_posts_enter_text = State()
     manage_posts_media= State()
     manage_posts_set_time= State()
+    manage_posts_switch_page= State()
+    edit_post_text= State()
+    edit_post_time= State()
+    edit_post_media= State()
 
 async def check_admin_access(
     user_id: int,
@@ -112,3 +125,6 @@ async def log_action(
     )
     db_session.add(log)
     await db_session.commit()
+
+
+

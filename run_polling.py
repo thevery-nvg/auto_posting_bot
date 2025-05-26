@@ -15,7 +15,6 @@ from src.utils.smart_session import SmartAiohttpSession
 from src.config import settings
 from src.core.models import Channel
 
-from src.handers.admin import router as admin_router
 
 from utils.connect_to_services import wait_sqlalchemy
 
@@ -40,9 +39,12 @@ from utils.connect_to_services import wait_sqlalchemy
 
 
 def setup_handlers(dp: Dispatcher) -> None:
-    # dp.include_router(autoposting_router)
-    # dp.include_router(moderation_router)
+    from src.handers.admin import router as admin_router
+    from src.handers.post_manage import router as post_manage_router
+    from src.handers.channel_manage import router as channel_manage_router
     dp.include_router(admin_router)
+    dp.include_router(channel_manage_router)
+    dp.include_router(post_manage_router)
 
 
 def setup_middlewares(dp: Dispatcher) -> None:

@@ -1,5 +1,5 @@
 import enum
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Channel:
@@ -177,22 +177,26 @@ channels = [
         ),
     ]
 
+channels_dict={c.id:c for c in channels}
+
 class PostStatus(enum.Enum):
     PENDING = "pending"
     PUBLISHED = "published"
     CANCELLED = "cancelled"
 
+from uuid import uuid4
+
 class Post:
     def __init__(self,
                  channel_id:int,
                  text:str,
-                 media_type:str,
-                 media_file_id:str,
+                 media_type:str|None,
+                 media_file_id:str|None,
                  publish_time:datetime,
                  status:PostStatus,
                  created_by:int,
 ):
-
+        self.id = uuid4().int
         self.channel_id = channel_id
         self.text = text
         self.media_type = media_type
@@ -200,46 +204,92 @@ class Post:
         self.publish_time = publish_time
         self.created_by = created_by
         self.status = status
+        self.created_at = datetime.now()
+        self.updated_at = datetime.now()
 
-# Функция для публикации поста
-async def publish_post(bot: Bot, post_id: int, db_session: AsyncSession):
-        post = await db_session.get(Post, post_id)
-        if not post or post.status != PostStatus.PENDING:
-            return
 
-        try:
-            if post.media_file_id and post.media_type:
-                if post.media_type == "photo":
-                    await bot.send_photo(
-                        chat_id=post.channel_id,
-                        photo=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-                elif post.media_type == "video":
-                    await bot.send_video(
-                        chat_id=post.channel_id,
-                        video=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-                elif post.media_type == "document":
-                    await bot.send_document(
-                        chat_id=post.channel_id,
-                        document=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-            else:
-                await bot.send_message(
-                    chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
-                )
+posts_mock = [
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост1",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=600),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=700),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=800),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=900),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=1000),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=1100),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=1200),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=1300),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+    Post(
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=1400),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    ),
+]
+posts_mock_dict={post.id:post for post in posts_mock}
 
-            # Обновляем статус поста
-            post.status = PostStatus.PUBLISHED
-            await db_session.commit()
-        except Exception as e:
-            # Логируем ошибку (можно добавить в таблицу logs)
-            print(f"Error publishing post {post_id}: {e}")
-            post.status = PostStatus.CANCELLED
-            await db_session.commit()

@@ -19,21 +19,18 @@ from src.handers.mock import channels as mock_channels
 router = Router(name="manage_channels")
 
 
+
+
+
 @router.callback_query(F.data == Buttons.manage_channels_callback, Admin.main)
 async def manage_channels(callback_query: types.CallbackQuery, state: FSMContext):
     # async with db_session.begin() as session:
     #     channels = await session.execute(select(Channel).order_by(Channel.name))
     #     channels = channels.scalars().all()
     builder = InlineKeyboardBuilder()
-    builder.button(
-        text=Buttons.add_channel_text, callback_data=Buttons.add_channel_callback
-    )
-    builder.button(
-        text=Buttons.remove_channel_text, callback_data=Buttons.remove_channel_callback
-    )
-    builder.button(
-        text=Buttons.list_channels_text, callback_data=Buttons.list_channels_callback
-    )
+    builder.button(text=Buttons.add_channel_text, callback_data=Buttons.add_channel_callback)
+    builder.button(text=Buttons.remove_channel_text, callback_data=Buttons.remove_channel_callback)
+    builder.button(text=Buttons.list_channels_text, callback_data=Buttons.list_channels_callback)
     builder.button(**goto_main_menu_btn)
     builder.adjust(1)
     await callback_query.message.edit_text(
