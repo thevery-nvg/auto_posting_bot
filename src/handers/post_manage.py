@@ -39,7 +39,7 @@ def get_post_details_keyboard(post):
     builder = InlineKeyboardBuilder()
     media_btn = (
         {"text": Buttons.edit_add_media_text, "callback_data": Buttons.edit_add_media_callback}
-        if post.media_type
+        if post.media_type is  None
         else {
             "text": Buttons.edit_remove_media_text,
             "callback_data": Buttons.edit_remove_media_callback,
@@ -325,15 +325,17 @@ async def set_time(
 
 @router.callback_query(F.data==Buttons.list_posts_callback, Admin.manage_posts)
 async def list_posts(callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
+    import copy
     page_size = 10
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts=posts_mock
+    posts=copy.copy(posts_mock)
     total_pages=len(posts)//page_size
     page=data.get("page",0)
     message_text=f"📢 Список постов:\n\n"
     builder=InlineKeyboardBuilder()
     for post in posts[page:page+page_size]:
+        print(post.text)
         builder.button(text=f"{post.id}:{post.publish_time}",callback_data=f"post_{post.id}")
     data["page"]=page+page_size
     data["posts"]=posts

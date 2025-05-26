@@ -21,7 +21,10 @@ router = Router(name="admin")
 
 @router.callback_query(F.data == Buttons.goto_main_callback, StateFilter(any_state))
 async def goto_main(callback_query: types.CallbackQuery, state: FSMContext):
-    await state.set_state(None)
+    data=await state.get_data()
+    main_message=data.get("main_message")
+    await state.clear()
+    await state.update_data(main_message=main_message)
     await cmd_admin(callback_query.message, state)
 
 
