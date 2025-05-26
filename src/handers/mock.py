@@ -188,6 +188,7 @@ from uuid import uuid4
 
 class Post:
     def __init__(self,
+                 title:str,
                  channel_id:int,
                  text:str,
                  media_type:str|None,
@@ -197,6 +198,7 @@ class Post:
                  created_by:int,
 ):
         self.id = uuid4().int
+        self.title = title
         self.channel_id = channel_id
         self.text = text
         self.media_type = media_type
@@ -210,6 +212,7 @@ class Post:
 
 posts_mock = [
     Post(
+        title="Тестовый пост1",
         channel_id=-1002164486161,
         text="Тестовый пост1",
         media_type=None,
@@ -219,6 +222,7 @@ posts_mock = [
         created_by=123456789,
     ),
     Post(
+        title="Тестовый пост2",
         channel_id=-1002164486161,
         text="Тестовый пост2",
         media_type=None,
@@ -228,6 +232,7 @@ posts_mock = [
         created_by=123456789,
     ),
     Post(
+        title="Тестовый пост3",
         channel_id=-1002164486161,
         text="Тестовый пост2",
         media_type=None,
@@ -237,6 +242,7 @@ posts_mock = [
         created_by=123456789,
     ),
     Post(
+        title="Тестовый пост4",
         channel_id=-1002164486161,
         text="Тестовый пост2",
         media_type=None,
@@ -246,6 +252,7 @@ posts_mock = [
         created_by=123456789,
     ),
     Post(
+        title="Тестовый пост5",
         channel_id=-1002164486161,
         text="Тестовый пост2",
         media_type=None,
@@ -255,6 +262,7 @@ posts_mock = [
         created_by=123456789,
     ),
     Post(
+        title="Тестовый пост6",
         channel_id=-1002164486161,
         text="Тестовый пост2",
         media_type=None,
@@ -264,6 +272,7 @@ posts_mock = [
         created_by=123456789,
     ),
     Post(
+        title="Тестовый пост7",
         channel_id=-1002164486161,
         text="Тестовый пост2",
         media_type=None,
@@ -273,6 +282,7 @@ posts_mock = [
         created_by=123456789,
     ),
     Post(
+        title="Тестовый пост8",
         channel_id=-1002164486161,
         text="Тестовый пост2",
         media_type=None,
@@ -282,6 +292,7 @@ posts_mock = [
         created_by=123456789,
     ),
     Post(
+        title="Тестовый пост9",
         channel_id=-1002164486161,
         text="Тестовый пост2",
         media_type=None,

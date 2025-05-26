@@ -51,8 +51,10 @@ class Buttons:
     skip_media_text = "Пропустить"
     skip_media_callback = "#skip_media#"
     # Post menu
-    edit_text= "Редактировать"
+    edit_text= "Редактировать текст"
     edit_callback = "#edit#"
+    edit_title_text= "Редактировать заголовок"
+    edit_title_callback = "#edit_title#"
     edit_time_text= "Изменить время публикации"
     edit_time_callback = "#edit_time#"
     edit_add_media_text= "Добавить медиа"
@@ -86,6 +88,7 @@ class Admin(StatesGroup):
     remove_channel = State()
 
     manage_posts = State()
+    manage_posts_set_title= State()
     manage_posts_enter_text = State()
     manage_posts_media= State()
     manage_posts_set_time= State()
@@ -94,6 +97,9 @@ class Admin(StatesGroup):
     edit_post_text= State()
     edit_post_time= State()
     edit_post_media= State()
+    edit_post_title= State()
+
+    remove_post = State()
 
 async def check_admin_access(
     user_id: int,

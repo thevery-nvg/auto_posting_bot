@@ -1,5 +1,4 @@
 from sqlalchemy import (
-    Column,
     Integer,
     BigInteger,
     String,
@@ -72,7 +71,8 @@ class Post(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     channel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=False)
-    text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
     media_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     media_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     publish_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)

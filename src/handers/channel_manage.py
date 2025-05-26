@@ -67,11 +67,12 @@ async def add_channel_stage_3(message: types.Message, state: FSMContext):
     except ValueError:
         await message.delete()
         await main_message.message.edit_text(
-            "Введите корректный ID канала:")
+            "❌Введите корректный ID канала:")
         return
     await state.set_state(Admin.add_notification_id)
     await state.update_data(channel_id=channel_id)
     await message.delete()
+    #TODO: Добавить скип
     await main_message.message.edit_text(
         "Введите ID чата уведомлений:")
 
@@ -85,7 +86,7 @@ async def add_channel_stage_4(message: types.Message, state: FSMContext):
     except ValueError:
         await message.delete()
         await main_message.message.edit_text(
-            "Введите корректный ID чата уведомлений:")
+            "❌Введите корректный ID чата уведомлений:")
         return
     await state.update_data(notification_id=notification_id)
     await message.delete()
@@ -130,7 +131,7 @@ async def remove_channel_stage_2(message: types.Message, state: FSMContext):
     except ValueError:
         await message.delete()
         await main_message.message.edit_text(
-            "Введите корректный ID канала:")
+            "❌Введите корректный ID канала:")
         return
     channels=data.get("channels")
     channels=[channel for channel in channels if channel.id!=channel_id]
@@ -389,7 +390,7 @@ async def change_chat_notification_stage_2(
         await message.delete()
     except ValueError:
         await message.delete()
-        await main_message.message.edit_text(text="ID должен быть числом\nВведите новый ID чата уведомлений")
+        await main_message.message.edit_text(text="❌ID должен быть числом\nВведите новый ID чата уведомлений")
         return
     channel_id = data.get("channel_id")
     channels = data.get("channels")
