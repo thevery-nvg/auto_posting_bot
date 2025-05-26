@@ -12,8 +12,6 @@ from typing import Optional
 
 from src.core.models import User, UserRole, Channel, Stat, Log
 
-router = Router(name="admin")
-
 class Buttons:
     # Main menu
     manage_channels_text = "Управление каналами"
@@ -80,11 +78,19 @@ class Admin(StatesGroup):
     manage_channels = State()
     manage_channels_change_name = State()
     manage_channels_change_notification = State()
+
+    add_channel_name = State()
+    add_channel_id= State()
+    add_notification_id= State()
+
+    remove_channel = State()
+
     manage_posts = State()
     manage_posts_enter_text = State()
     manage_posts_media= State()
     manage_posts_set_time= State()
     manage_posts_switch_page= State()
+
     edit_post_text= State()
     edit_post_time= State()
     edit_post_media= State()
@@ -125,6 +131,3 @@ async def log_action(
     )
     db_session.add(log)
     await db_session.commit()
-
-
-

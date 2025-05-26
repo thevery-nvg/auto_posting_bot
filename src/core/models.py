@@ -11,7 +11,7 @@ from sqlalchemy import (
     MetaData,
 )
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 
 import enum
@@ -36,31 +36,32 @@ class PostStatus(enum.Enum):
     CANCELLED = "cancelled"
 
 
+
+
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(BigInteger, primary_key=True, index=True)  # Telegram ID пользователя
-    username = Column(String(255), nullable=True)  # Имя пользователя (опционально)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.USER)  # Роль
-    is_banned = Column(Boolean, default=False)  # Статус бана
-    created_at = Column(DateTime, server_default=func.now())  # Время создания
-    updated_at = Column(DateTime, onupdate=func.now())  # Время обновления
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.USER)
+    is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
 
     logs = relationship("Log", back_populates="user")
-
+    posts = relationship("Post", back_populates="creator")
 
 class Channel(Base):
     __tablename__ = "channels"
 
-    id = Column(BigInteger, primary_key=True, index=True)  # Telegram ID канала
-    name = Column(String(255), nullable=False)  # Название канала
-    is_active = Column(Boolean, default=True)  # Активен ли канал
-    moderation_enabled = Column(Boolean, default=True)  # Включена ли модерация
-    notification_chat_id = Column(BigInteger, nullable=True)  # Чат для уведомлений
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    moderation_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    notification_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
 
-    # Связи
     posts = relationship("Post", back_populates="channel")
     filters = relationship("Filter", back_populates="channel")
     stats = relationship("Stat", back_populates="channel")
@@ -69,52 +70,49 @@ class Channel(Base):
 class Post(Base):
     __tablename__ = "posts"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    channel_id = Column(BigInteger, ForeignKey("channels.id"), nullable=False)
-    text = Column(Text, nullable=True)  # Текст поста
-    media_type = Column(String(50), nullable=True)  # Тип медиа (photo, video, document)
-    media_file_id = Column(String(255), nullable=True)  # File ID медиа в Telegram
-    publish_time = Column(DateTime, nullable=False)  # Время публикации
-    status = Column(
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    channel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=False)
+    text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    media_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    media_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    publish_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    status: Mapped[PostStatus] = mapped_column(
         Enum(PostStatus), nullable=False, default=PostStatus.PENDING
-    )  # Статус
-    created_by = Column(
-        BigInteger, ForeignKey("users.id"), nullable=False
-    )  # Кто создал
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
+    )
+    created_by: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
 
-    # Связи
-    channel = relationship("Channel", back_populates="posts")
-    creator = relationship("User")
+    # Relationships
+    creator: Mapped["User"] = relationship("User", back_populates="posts")
+    channel: Mapped["Channel"] = relationship("Channel", back_populates="posts")
+    stats: Mapped[list["Stat"]] = relationship("Stat", back_populates="post")
 
 
 class Filter(Base):
     __tablename__ = "filters"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    channel_id = Column(BigInteger, ForeignKey("channels.id"), nullable=False)
-    keyword = Column(String(255), nullable=True)  # Ключевое слово
-    regex = Column(String(255), nullable=True)  # Регулярное выражение
-    is_active = Column(Boolean, default=True)  # Активен ли фильтр
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    channel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=False)
+    keyword: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    regex: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
 
-    # Связь
     channel = relationship("Channel", back_populates="filters")
 
 
 class Log(Base):
     __tablename__ = "logs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
-    action = Column(String(255), nullable=False)  # Тип действия (ban, delete, post)
-    details = Column(Text, nullable=True)  # Подробности (JSON или текст)
-    channel_id = Column(BigInteger, ForeignKey("channels.id"), nullable=True)
-    timestamp = Column(DateTime, server_default=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    action: Mapped[str] = mapped_column(String(255), nullable=False)
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    channel_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=True)
+    timestamp: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
-    # Связи
     user = relationship("User", back_populates="logs")
     channel = relationship("Channel")
 
@@ -122,13 +120,12 @@ class Log(Base):
 class Stat(Base):
     __tablename__ = "stats"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    channel_id = Column(BigInteger, ForeignKey("channels.id"), nullable=False)
-    post_id = Column(Integer, ForeignKey("posts.id"), nullable=True)  # Связь с постом
-    views = Column(Integer, default=0)  # Количество просмотров
-    comments = Column(Integer, default=0)  # Количество комментариев
-    timestamp = Column(DateTime, server_default=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    channel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=False)
+    post_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("posts.id"), nullable=True)
+    views: Mapped[int] = mapped_column(Integer, default=0)
+    comments: Mapped[int] = mapped_column(Integer, default=0)
+    timestamp: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
-    # Связь
     channel = relationship("Channel", back_populates="stats")
-    post = relationship("Post")
+    post = relationship("Post", back_populates="stats")

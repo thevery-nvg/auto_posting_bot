@@ -26,7 +26,7 @@ from src.handers.utils import (
 router = Router(name="manage_posts")
 scheduler = AsyncIOScheduler()
 
-def get_post_info(post):
+def get_post_details(post):
     return (f"📢 Пост {post.id}:\n\n"
             f"Текст:{post.text}\n\n"
             f"Медиа тип: {post.media_type}\n\n"
@@ -35,7 +35,7 @@ def get_post_info(post):
             f"Статус: {post.status}\n\n"
             f"Время публикации: {post.publish_time.strftime('%Y-%m-%d %H:%M')}")
 
-def get_post_keyboard(post):
+def get_post_details_keyboard(post):
     builder = InlineKeyboardBuilder()
     media_btn = (
         {"text": Buttons.edit_add_media_text, "callback_data": Buttons.edit_add_media_callback}
@@ -411,8 +411,8 @@ async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
             break
 
     await state.update_data(post=post)
-    details=get_post_info(post)
-    builder=get_post_keyboard(post)
+    details=get_post_details(post)
+    builder=get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
@@ -440,8 +440,8 @@ async def edit_post_text_stage_2(message: types.Message, state: FSMContext):
             posts[i].text=text
             post.text=text
             break
-    details=get_post_info(post)
-    builder = get_post_keyboard(post)
+    details=get_post_details(post)
+    builder = get_post_details_keyboard(post)
     await state.set_state(Admin.manage_posts)
     await main_message.message.edit_text(
         text=details,
@@ -477,8 +477,8 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
             posts[i].publish_time=publish_time
             post.publish_time=publish_time
             break
-    details=get_post_info(post)
-    builder=get_post_keyboard(post)
+    details=get_post_details(post)
+    builder=get_post_details_keyboard(post)
     await state.set_state(Admin.manage_posts)
     await main_message.message.edit_text(
         text=details,
@@ -498,8 +498,8 @@ async def edit_remove_media(callback_query: types.CallbackQuery, state: FSMConte
             posts[i].media_file_id=None
             posts[i].media_type = None
             break
-    details=get_post_info(post)
-    builder=get_post_keyboard(post)
+    details=get_post_details(post)
+    builder=get_post_details_keyboard(post)
     await state.update_data(posts=posts)
     await main_message.message.edit_text(
         text=details,
@@ -544,8 +544,8 @@ async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
     await state.update_data(posts=posts)
     await message.delete()
     await state.set_state(Admin.manage_posts)
-    details=get_post_info(post)
-    builder=get_post_keyboard(post)
+    details=get_post_details(post)
+    builder=get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
