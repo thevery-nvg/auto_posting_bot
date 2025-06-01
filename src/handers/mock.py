@@ -288,7 +288,7 @@ posts_mock = [
         media_type=None,
         media_file_id=None,
         publish_time=datetime.now() + timedelta(seconds=1300),
-        status=PostStatus.PENDING,
+        status=PostStatus.CANCELLED,
         created_by=123456789,
     ),
     Post(
@@ -298,7 +298,7 @@ posts_mock = [
         media_type=None,
         media_file_id=None,
         publish_time=datetime.now() + timedelta(seconds=1400),
-        status=PostStatus.PENDING,
+        status=PostStatus.PUBLISHED,
         created_by=123456789,
     ),
     Post(
@@ -319,7 +319,17 @@ posts_mock = [
         media_type=None,
         media_file_id=None,
         publish_time=datetime.now() + timedelta(seconds=1600),
-        status=PostStatus.PENDING,
+        status=PostStatus.CANCELLED,
+        created_by=123456789,
+    ),
+    Post(
+        title="Тестовый пост12",
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=1700),
+        status=PostStatus.PUBLISHED,
         created_by=123456789,
     )
 

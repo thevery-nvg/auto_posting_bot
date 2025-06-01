@@ -59,6 +59,17 @@ class Buttons:
     list_posts_callback = "#list_posts#"
     skip_media_text = "Пропустить"
     skip_media_callback = "#skip_media#"
+    list_posts_types_text = "Списки постов"
+    list_posts_types_callback = "#list_posts_types#"
+
+
+    pending_posts_text = "Ожидающие публикации"
+    pending_posts_callback = "#pending_posts#"
+    published_posts_text = "Опубликованные посты"
+    published_posts_callback = "#published_posts#"
+    cancelled_posts_text = "Отмененные посты"
+    cancelled_posts_callback = "#cancelled_posts#"
+
     # Post menu
     edit_text = "Редактировать текст"
     edit_callback = "#edit#"
@@ -107,6 +118,7 @@ class Admin(StatesGroup):
     manage_posts_switch_page = State()
     manage_posts_details = State()
 
+    posts_list = State()
     edit_post_text = State()
     edit_post_time = State()
     edit_post_media = State()
