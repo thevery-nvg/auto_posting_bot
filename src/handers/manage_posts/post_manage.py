@@ -20,6 +20,7 @@ from src.handers.utils import (
     Admin,
     get_post_details,
     get_post_details_keyboard,
+    publish_post,
 )
 from src.handers.manage_posts.remove_post import router as remove_post
 from src.handers.manage_posts.edit_post import router as edit_post
@@ -29,39 +30,6 @@ router.include_router(remove_post)
 router.include_router(edit_post)
 
 scheduler = AsyncIOScheduler()
-
-
-# Функция для публикации поста
-async def publish_post(bot: Bot, post: Post):
-    try:
-        if post.media_file_id and post.media_type:
-            if post.media_type == "photo":
-                await bot.send_photo(
-                    chat_id=post.channel_id,
-                    photo=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown",
-                )
-            elif post.media_type == "video":
-                await bot.send_video(
-                    chat_id=post.channel_id,
-                    video=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown",
-                )
-            elif post.media_type == "document":
-                await bot.send_document(
-                    chat_id=post.channel_id,
-                    document=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown",
-                )
-        else:
-            await bot.send_message(
-                chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
-            )
-    except Exception as e:
-        print(e)
 
 
 @router.callback_query(F.data == Buttons.manage_posts_callback, Admin.main)
@@ -86,7 +54,11 @@ async def manage_posts(callback_query: types.CallbackQuery, state: FSMContext):
     )
 
 
-@router.callback_query(F.contains(Buttons.create_post_callback) |F.data.contains(Buttons.edit_channel_callback), Admin.manage_posts)
+@router.callback_query(
+    F.contains(Buttons.create_post_callback)
+    | F.data.contains(Buttons.edit_channel_callback),
+    Admin.manage_posts,
+)
 async def create_post_stage_1(
     callback_query: types.CallbackQuery, state: FSMContext, bot: Bot
 ):
@@ -104,7 +76,7 @@ async def create_post_stage_1(
             .as_markup(),
         )
         return
-    edit=False
+    edit = False
     if callback_query.data == Buttons.edit_channel_callback:
         edit = True
     # Создаем клавиатуру с каналами`
@@ -115,16 +87,16 @@ async def create_post_stage_1(
     builder = InlineKeyboardBuilder()
     for channel in channels[page : page + page_size]:
         if edit:
-            callback_data=f"edit_channel_{channel.id}"
+            callback_data = f"edit_channel_{channel.id}"
         else:
-            callback_data=f"channel_{channel.id}"
+            callback_data = f"channel_{channel.id}"
         builder.button(
             text=f"{channel.name} {channel.id}",
             callback_data=callback_data,
         )
     data["page"] = page + page_size
     data["channels"] = channels
-    data["edit"]=edit
+    data["edit"] = edit
     await state.set_data(data)
     if page + page_size < len(channels):
         builder.button(
@@ -195,21 +167,22 @@ async def edit_post_channel(callback_query: types.CallbackQuery, state: FSMConte
     channel_id = int(callback_query.data.replace("edit_channel_", ""))
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts=data.get("posts")
-    post=data.get("post")
-    for i,c in enumerate(posts):
+    posts = data.get("posts")
+    post = data.get("post")
+    for i, c in enumerate(posts):
         if posts[i].id == post.id:
-            post.channel_id=channel_id
-            posts[i]=post
+            post.channel_id = channel_id
+            posts[i] = post
             break
     await state.update_data(posts=posts)
     await state.update_data(post=post)
     details = get_post_details(post)
-    builder=get_post_details_keyboard(post)
+    builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
     )
+
 
 @router.callback_query(F.data.startswith("channel_"), Admin.manage_posts)
 async def create_post_stage_2(callback_query: types.CallbackQuery, state: FSMContext):
@@ -438,9 +411,6 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
         text=message_text,
         reply_markup=builder.as_markup(),
     )
-
-
-
 
 
 @router.callback_query(F.data == Buttons.edit_time_callback, Admin.manage_posts)

@@ -13,7 +13,7 @@ from datetime import datetime
 import pendulum
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.handers.mock import channels as mock_channels
-from src.handers.mock import Post, PostStatus,posts_mock,posts_mock_dict
+from src.handers.mock import Post, PostStatus, posts_mock, posts_mock_dict
 from src.handers.utils import (
     Buttons,
     goto_main_menu_btn,
@@ -23,6 +23,7 @@ from src.handers.utils import (
 )
 
 router = Router(name="edit_post")
+
 
 @router.callback_query(F.data.startswith("post_"), Admin.manage_posts)
 async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
@@ -36,8 +37,6 @@ async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
         if p.id == post_id:
             post = p
             break
-    print(post.title)
-    print(post.channel_id)
     await state.update_data(post=post)
     details = get_post_details(post)
     builder = get_post_details_keyboard(post)

@@ -10,17 +10,18 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from io import StringIO
 from typing import Optional
 
-from src.core.models import User, UserRole, Channel, Stat, Log
+from src.core.models import User, UserRole, Channel, Stat, Log, Post
+
 
 class Buttons:
     # Main menu
     manage_channels_text = "Управление каналами"
     manage_channels_callback = "#manage_channels#"
 
-    manage_posts_text= "Управление постами"
+    manage_posts_text = "Управление постами"
     manage_posts_callback = "#manage_posts#"
 
-    manage_moderator_text= "Управление модераторами"
+    manage_moderator_text = "Управление модераторами"
     manage_moderator_callback = "#manage_moderator#"
 
     logs_text = "Просмотр логов"
@@ -59,13 +60,13 @@ class Buttons:
     skip_media_text = "Пропустить"
     skip_media_callback = "#skip_media#"
     # Post menu
-    edit_text= "Редактировать текст"
+    edit_text = "Редактировать текст"
     edit_callback = "#edit#"
-    edit_title_text= "Редактировать заголовок"
+    edit_title_text = "Редактировать заголовок"
     edit_title_callback = "#edit_title#"
-    edit_time_text= "Изменить время публикации"
+    edit_time_text = "Изменить время публикации"
     edit_time_callback = "#edit_time#"
-    edit_add_media_text= "Добавить медиа"
+    edit_add_media_text = "Добавить медиа"
     edit_add_media_callback = "#add_media#"
     edit_remove_media_text = "Удалить медиа"
     edit_remove_media_callback = "#remove_media#"
@@ -85,6 +86,7 @@ goto_main_menu_btn = {
     "callback_data": Buttons.goto_main_callback,
 }
 
+
 class Admin(StatesGroup):
     main = State()
     manage_channels = State()
@@ -92,24 +94,25 @@ class Admin(StatesGroup):
     manage_channels_change_notification = State()
 
     add_channel_name = State()
-    add_channel_id= State()
-    add_notification_id= State()
+    add_channel_id = State()
+    add_notification_id = State()
 
     remove_channel = State()
 
     manage_posts = State()
-    manage_posts_set_title= State()
+    manage_posts_set_title = State()
     manage_posts_enter_text = State()
-    manage_posts_media= State()
-    manage_posts_set_time= State()
-    manage_posts_switch_page= State()
+    manage_posts_media = State()
+    manage_posts_set_time = State()
+    manage_posts_switch_page = State()
 
-    edit_post_text= State()
-    edit_post_time= State()
-    edit_post_media= State()
-    edit_post_title= State()
+    edit_post_text = State()
+    edit_post_time = State()
+    edit_post_media = State()
+    edit_post_title = State()
 
     remove_post = State()
+
 
 async def check_admin_access(
     user_id: int,
@@ -165,6 +168,7 @@ def get_channel_details_text(channel):
         f"  • <b>Обновлен:</b> <code>{channel.updated_at}</code>\n"
     )
 
+
 def get_channel_details_keyboard(channel):
     builder = InlineKeyboardBuilder()
     if not channel:
@@ -172,9 +176,17 @@ def get_channel_details_keyboard(channel):
         builder.adjust(1)
         return builder
     builder.button(text="Изменить имя", callback_data=f"change_name_{channel.id}")
-    builder.button(text="Отключить" if channel.is_active else "Включить", callback_data=f"switch_channel_status_{channel.id}")
     builder.button(
-        text="Отключить модерацию" if channel.moderation_enabled else "Включить модерацию", callback_data=f"switch_moderation_status_{channel.id}"
+        text="Отключить" if channel.is_active else "Включить",
+        callback_data=f"switch_channel_status_{channel.id}",
+    )
+    builder.button(
+        text=(
+            "Отключить модерацию"
+            if channel.moderation_enabled
+            else "Включить модерацию"
+        ),
+        callback_data=f"switch_moderation_status_{channel.id}",
     )
     builder.button(
         text="Изменить чат уведомлений",
@@ -184,30 +196,41 @@ def get_channel_details_keyboard(channel):
     builder.adjust(1)
     return builder
 
+
 def get_post_details(post):
-    return (f"📢 Пост ID:{post.id}:\n\n"
-            f"Заголовок: {post.title}\n\n"
-            f"Текст:{post.text}\n\n"
-            f"Медиа тип: {post.media_type}\n\n"
-            f"Медиа файл: {post.media_file_id}\n\n"
-            f"Создано пользователем: {post.created_by}\n\n"
-            f"Канал: {post.channel_id}\n\n"
-            f"Статус: {post.status}\n\n"
-            f"Время публикации: {post.publish_time.strftime('%Y-%m-%d %H:%M')}")
+    return (
+        f"📢 Пост ID:{post.id}:\n\n"
+        f"Заголовок: {post.title}\n\n"
+        f"Текст:{post.text}\n\n"
+        f"Медиа тип: {post.media_type}\n\n"
+        f"Медиа файл: {post.media_file_id}\n\n"
+        f"Создано пользователем: {post.created_by}\n\n"
+        f"Канал: {post.channel_id}\n\n"
+        f"Статус: {post.status}\n\n"
+        f"Время публикации: {post.publish_time.strftime('%Y-%m-%d %H:%M')}"
+    )
+
 
 def get_post_details_keyboard(post):
     builder = InlineKeyboardBuilder()
     media_btn = (
-        {"text": Buttons.edit_add_media_text, "callback_data": Buttons.edit_add_media_callback}
+        {
+            "text": Buttons.edit_add_media_text,
+            "callback_data": Buttons.edit_add_media_callback,
+        }
         if not post.media_type
         else {
             "text": Buttons.edit_remove_media_text,
             "callback_data": Buttons.edit_remove_media_callback,
         }
     )
-    builder.button(text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback)
+    builder.button(
+        text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback
+    )
     builder.button(text=Buttons.edit_text, callback_data=Buttons.edit_callback)
-    builder.button(text=Buttons.edit_channel_text, callback_data=Buttons.edit_channel_callback)
+    builder.button(
+        text=Buttons.edit_channel_text, callback_data=Buttons.edit_channel_callback
+    )
     builder.button(
         text=Buttons.edit_time_text, callback_data=Buttons.edit_time_callback
     )
@@ -215,3 +238,35 @@ def get_post_details_keyboard(post):
     builder.button(**goto_main_menu_btn)
     builder.adjust(1)
     return builder
+
+
+async def publish_post(bot: Bot, post: Post):
+    try:
+        if post.media_file_id and post.media_type:
+            if post.media_type == "photo":
+                await bot.send_photo(
+                    chat_id=post.channel_id,
+                    photo=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown",
+                )
+            elif post.media_type == "video":
+                await bot.send_video(
+                    chat_id=post.channel_id,
+                    video=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown",
+                )
+            elif post.media_type == "document":
+                await bot.send_document(
+                    chat_id=post.channel_id,
+                    document=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown",
+                )
+        else:
+            await bot.send_message(
+                chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
+            )
+    except Exception as e:
+        print(e)
