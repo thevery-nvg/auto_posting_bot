@@ -28,8 +28,7 @@ from src.handers.manage_posts.shedule import scheduler
 router = Router(name="create_post")
 
 @router.callback_query(
-    F.contains(Buttons.create_post_callback)
-    | F.data.contains(Buttons.edit_channel_callback),
+    F.data==Buttons.create_post_callback,
     Admin.manage_posts,
 )
 async def create_post_stage_1(
@@ -49,9 +48,6 @@ async def create_post_stage_1(
             .as_markup(),
         )
         return
-    edit = False
-    if callback_query.data == Buttons.edit_channel_callback:
-        edit = True
     # Создаем клавиатуру с каналами`
     page_size = 5
     page = 0
@@ -59,17 +55,13 @@ async def create_post_stage_1(
     message_text = f"📢 Выберите канал для публикации: ({total_pages}):\n\n"
     builder = InlineKeyboardBuilder()
     for channel in channels[page : page + page_size]:
-        if edit:
-            callback_data = f"edit_channel_{channel.id}"
-        else:
-            callback_data = f"channel_{channel.id}"
+        callback_data = f"channel_{channel.id}"
         builder.button(
             text=f"{channel.name} {channel.id}",
             callback_data=callback_data,
         )
     data["page"] = page + page_size
     data["channels"] = channels
-    data["edit"] = edit
     await state.set_data(data)
     if page + page_size < len(channels):
         builder.button(
@@ -101,12 +93,9 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
         page += page_size
     await state.update_data(page=page)
     builder = InlineKeyboardBuilder()
-    edit = data.get("edit")
+
     for channel in channels[page : page + page_size]:
-        if edit:
-            callback_data = f"edit_channel_{channel.id}"
-        else:
-            callback_data = f"channel_{channel.id}"
+        callback_data = f"channel_{channel.id}"
         builder.button(
             text=f"{channel.name} {channel.id}",
             callback_data=callback_data,
@@ -139,26 +128,6 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
     )
 
 
-@router.callback_query(F.data.startswith("edit_channel_"), Admin.manage_posts)
-async def edit_post_channel(callback_query: types.CallbackQuery, state: FSMContext):
-    channel_id = int(callback_query.data.replace("edit_channel_", ""))
-    data = await state.get_data()
-    main_message = data.get("main_message")
-    posts = data.get("posts")
-    post = data.get("post")
-    for i, c in enumerate(posts):
-        if posts[i].id == post.id:
-            post.channel_id = channel_id
-            posts[i] = post
-            break
-    await state.update_data(posts=posts)
-    await state.update_data(post=post)
-    details = get_post_details(post)
-    builder = get_post_details_keyboard(post)
-    await main_message.message.edit_text(
-        text=details,
-        reply_markup=builder.as_markup(),
-    )
 
 
 @router.callback_query(F.data.startswith("channel_"), Admin.manage_posts)
@@ -257,7 +226,7 @@ async def add_media(message: types.Message, state: FSMContext):
 async def set_time(message: types.Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
+    posts = posts_mock
     try:
         publish_time = pendulum.parse(message.text, strict=False).replace(tzinfo=None)
         await message.delete()

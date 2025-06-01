@@ -48,7 +48,9 @@ async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
     )
 
 
-@router.callback_query(F.data == Buttons.edit_title_callback, Admin.manage_posts_details)
+@router.callback_query(
+    F.data == Buttons.edit_title_callback, Admin.manage_posts_details
+)
 async def edit_post_title_stage_1(
     callback_query: types.CallbackQuery, state: FSMContext
 ):
@@ -114,6 +116,7 @@ async def edit_post_text_stage_2(message: types.Message, state: FSMContext):
         text=details,
         reply_markup=builder.as_markup(),
     )
+
 
 @router.callback_query(F.data == Buttons.edit_time_callback, Admin.posts_list)
 async def edit_post_time_stage_1(
@@ -228,6 +231,7 @@ async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
         reply_markup=builder.as_markup(),
     )
 
+
 @router.callback_query(F.data == Buttons.cancel_post_callback, Admin.posts_list)
 async def cancel_post(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -236,10 +240,10 @@ async def cancel_post(callback_query: types.CallbackQuery, state: FSMContext):
     post = data.get("post")
     for i, p in enumerate(posts):
         if p.id == post.id:
-            posts[i].status=PostStatus.CANCELLED
-            post.status=PostStatus.CANCELLED
+            posts[i].status = PostStatus.CANCELLED
+            post.status = PostStatus.CANCELLED
             break
-    await state.update_data(posts=posts,post=post)
+    await state.update_data(posts=posts, post=post)
     details = get_post_details(post)
     builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
@@ -247,29 +251,37 @@ async def cancel_post(callback_query: types.CallbackQuery, state: FSMContext):
         reply_markup=builder.as_markup(),
     )
 
+
 @router.callback_query(F.data == Buttons.publish_now_callback, Admin.posts_list)
 async def publish_now_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
-    builder=InlineKeyboardBuilder()
+    builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(text="Да", callback_data=Buttons.yes_sure_callback),
         InlineKeyboardButton(text="Нет", callback_data=Buttons.no_god_no_callback),
     )
-    await main_message.message.edit_text("Вы уверены, что хотите опубликовать пост сейчас?",
-                                         reply_markup=builder.as_markup())
+    await main_message.message.edit_text(
+        "Вы уверены, что хотите опубликовать пост сейчас?",
+        reply_markup=builder.as_markup(),
+    )
 
-@router.callback_query(F.data.contains(Buttons.yes_sure_callback)
-                       |F.data.contains(Buttons.no_god_no_callback),
-                       Admin.posts_list)
-async def publish_now_stage_2(callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
+
+@router.callback_query(
+    F.data.contains(Buttons.yes_sure_callback)
+    | F.data.contains(Buttons.no_god_no_callback),
+    Admin.posts_list,
+)
+async def publish_now_stage_2(
+    callback_query: types.CallbackQuery, state: FSMContext, bot: Bot
+):
     data = await state.get_data()
     main_message = data.get("main_message")
     posts = data.get("posts")
     post = data.get("post")
-    builder=InlineKeyboardBuilder()
+    builder = InlineKeyboardBuilder()
     builder.button(**goto_main_menu_btn)
-    if callback_query.data==Buttons.yes_sure_callback:
+    if callback_query.data == Buttons.yes_sure_callback:
         await publish_post(bot, post)
         await main_message.message.edit_text(
             "Пост опубликован!", reply_markup=builder.as_markup()
@@ -281,3 +293,111 @@ async def publish_now_stage_2(callback_query: types.CallbackQuery, state: FSMCon
             text=details,
             reply_markup=builder.as_markup(),
         )
+
+
+@router.callback_query(
+    F.data.contains(Buttons.edit_channel_callback),
+    Admin.posts_list,
+)
+async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
+    page_size = 5
+    page = 0
+
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    channels = data.get("channels")
+    channels = [x for x in channels if x.is_active]
+
+    builder = InlineKeyboardBuilder()
+    for channel in channels[:page_size]:
+        builder.button(
+            text=f"{channel.name} [{channel.id}]",
+            callback_data=f"channel_{channel.id}",
+        )
+
+    await state.update_data(page=page, channels=channels)
+    if len(channels) > page_size:
+        builder.button(
+            text=Buttons.forward_text, callback_data=Buttons.forward_callback
+        )
+    builder.button(**goto_main_menu_btn)
+    builder.adjust(1)
+
+    message_text = f"📢 Выберите канал для публикации ({page=}):\n\n"
+    await main_message.message.edit_text(
+        text=message_text,
+        reply_markup=builder.as_markup(),
+    )
+
+
+@router.callback_query(
+    F.data.contains(Buttons.back_callback) | F.data.contains(Buttons.forward_callback),
+    Admin.manage_channels,
+)
+async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
+    page_size = 5
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    channels = data.get("channels")
+    page = data.get("page")
+    total_pages = len(channels) // page_size
+    if callback_query.data == Buttons.back_callback:
+        page -= 1
+    if callback_query.data == Buttons.forward_callback:
+        page += 1
+    builder = InlineKeyboardBuilder()
+    p = channels[page * page_size : page * page_size + page_size]
+    n = channels[page * page_size : page * page_size + page_size + 1]
+    for channel in p:
+        builder.button(
+            text=f"{channel.name} [{channel.id}]",
+            callback_data=f"channel_{channel.id}",
+        )
+    builder.adjust(1)
+
+    back = (
+        InlineKeyboardButton(
+            text=Buttons.back_text, callback_data=Buttons.back_callback
+        )
+        if page != 0
+        else None
+    )
+    forward = (
+        InlineKeyboardButton(
+            text=Buttons.forward_text, callback_data=Buttons.forward_callback
+        )
+        if len(n) > len(p)
+        else None
+    )
+    navigation = [back, forward]
+    builder.row(*[x for x in navigation if x])
+    builder.button(**goto_main_menu_btn)
+    await state.update_data(page=page, channels=channels)
+
+    message_text = f"📢 Выберите канал для публикации ({page=}):\n\n"
+    await main_message.message.edit_text(
+        text=message_text,
+        reply_markup=builder.as_markup(),
+    )
+
+
+@router.callback_query(F.data.startswith("edit_channel_"), Admin.manage_posts)
+async def edit_post_channel(callback_query: types.CallbackQuery, state: FSMContext):
+    channel_id = int(callback_query.data.replace("edit_channel_", ""))
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    posts = data.get("posts")
+    post = data.get("post")
+    for i, c in enumerate(posts):
+        if posts[i].id == post.id:
+            post.channel_id = channel_id
+            posts[i] = post
+            break
+    await state.update_data(posts=posts)
+    await state.update_data(post=post)
+    details = get_post_details(post)
+    builder = get_post_details_keyboard(post)
+    await main_message.message.edit_text(
+        text=details,
+        reply_markup=builder.as_markup(),
+    )
