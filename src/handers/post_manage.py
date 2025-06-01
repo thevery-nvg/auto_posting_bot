@@ -152,7 +152,10 @@ async def remove_post_stage_2(message: types.Message, state: FSMContext):
 @router.callback_query(F.data == Buttons.create_post_callback, Admin.manage_posts)
 async def create_post_stage_1(callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
     data = await state.get_data()
+    #Получаем каналы, фильтруем активные
     channels = mock_channels
+    channels=[x for x in channels if x.is_active]
+
     main_message = data.get("main_message")
     if not channels:
         await main_message.message.edit_text(

@@ -52,7 +52,6 @@ async def add_channel_stage_3(message: types.Message, state: FSMContext):
         return
     await state.set_state(Admin.add_notification_id)
     await state.update_data(channel_id=channel_id)
-    #TODO: Добавить скип
     await main_message.message.edit_text(
         "Введите ID чата уведомлений (0 - без уведомлений):")
 
