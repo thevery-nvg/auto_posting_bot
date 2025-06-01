@@ -13,7 +13,7 @@ from typing import Optional
 
 from src.core.models import User, UserRole, Stat, Log
 from src.handers.utils import Buttons,goto_main_menu_btn,Admin,get_channel_details_text,get_channel_details_keyboard
-from src.handers.add_remove_channel import router as add_remove_channel_router
+from src.handers.manage_channels.add_remove_channel import router as add_remove_channel_router
 from src.handers.mock import channels as mock_channels,Channel
 
 router = Router(name="manage_channels")

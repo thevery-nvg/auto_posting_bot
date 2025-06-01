@@ -21,8 +21,8 @@ from src.handers.utils import (
     get_post_details,
     get_post_details_keyboard,
 )
-from src.handers.remove_post import router as remove_post
-from src.handers.edit_post import router as edit_post
+from src.handers.manage_posts.remove_post import router as remove_post
+from src.handers.manage_posts.edit_post import router as edit_post
 
 router = Router(name="manage_posts")
 router.include_router(remove_post)
