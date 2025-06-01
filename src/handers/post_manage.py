@@ -13,78 +13,55 @@ from datetime import datetime
 import pendulum
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.handers.mock import channels as mock_channels
-from src.handers.mock import Post, PostStatus,posts_mock,posts_mock_dict
+from src.handers.mock import Post, PostStatus, posts_mock, posts_mock_dict
 from src.handers.utils import (
-    is_user_admin,
-    log_action,
-    check_admin_access,
     Buttons,
     goto_main_menu_btn,
     Admin,
+    get_post_details,
+    get_post_details_keyboard,
 )
+from src.handers.remove_post import router as remove_post
+from src.handers.edit_post import router as edit_post
 
 router = Router(name="manage_posts")
+router.include_router(remove_post)
+router.include_router(edit_post)
+
 scheduler = AsyncIOScheduler()
 
-def get_post_details(post):
-    return (f"📢 Пост ID:{post.id}:\n\n"
-            f"Заголовок: {post.title}\n\n"
-            f"Текст:{post.text}\n\n"
-            f"Медиа тип: {post.media_type}\n\n"
-            f"Медиа файл: {post.media_file_id}\n\n"
-            f"Создано пользователем: {post.created_by}\n\n"
-            f"Статус: {post.status}\n\n"
-            f"Время публикации: {post.publish_time.strftime('%Y-%m-%d %H:%M')}")
 
-def get_post_details_keyboard(post):
-    builder = InlineKeyboardBuilder()
-    media_btn = (
-        {"text": Buttons.edit_add_media_text, "callback_data": Buttons.edit_add_media_callback}
-        if post.media_type is  None
-        else {
-            "text": Buttons.edit_remove_media_text,
-            "callback_data": Buttons.edit_remove_media_callback,
-        }
-    )
-    builder.button(text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback)
-    builder.button(text=Buttons.edit_text, callback_data=Buttons.edit_callback)
-    builder.button(
-        text=Buttons.edit_time_text, callback_data=Buttons.edit_time_callback
-    )
-    builder.button(**media_btn)
-    builder.button(**goto_main_menu_btn)
-    builder.adjust(1)
-    return builder
 # Функция для публикации поста
 async def publish_post(bot: Bot, post: Post):
-        try:
-            if post.media_file_id and post.media_type:
-                if post.media_type == "photo":
-                    await bot.send_photo(
-                        chat_id=post.channel_id,
-                        photo=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-                elif post.media_type == "video":
-                    await bot.send_video(
-                        chat_id=post.channel_id,
-                        video=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-                elif post.media_type == "document":
-                    await bot.send_document(
-                        chat_id=post.channel_id,
-                        document=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-            else:
-                await bot.send_message(
-                    chat_id=post.channel_id, text=post.text, parse_mode="Markdown")
-        except Exception as e:
-            print(e)
+    try:
+        if post.media_file_id and post.media_type:
+            if post.media_type == "photo":
+                await bot.send_photo(
+                    chat_id=post.channel_id,
+                    photo=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown",
+                )
+            elif post.media_type == "video":
+                await bot.send_video(
+                    chat_id=post.channel_id,
+                    video=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown",
+                )
+            elif post.media_type == "document":
+                await bot.send_document(
+                    chat_id=post.channel_id,
+                    document=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown",
+                )
+        else:
+            await bot.send_message(
+                chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
+            )
+    except Exception as e:
+        print(e)
 
 
 @router.callback_query(F.data == Buttons.manage_posts_callback, Admin.main)
@@ -109,52 +86,14 @@ async def manage_posts(callback_query: types.CallbackQuery, state: FSMContext):
     )
 
 
-@router.callback_query(F.data == Buttons.remove_post_callback, Admin.manage_posts)
-async def remove_post_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    main_message = data.get("main_message")
-    await state.set_state(Admin.remove_post)
-    await main_message.message.edit_text(
-        text="Введите ID поста для удаления:",
-    )
-@router.message(Admin.remove_post)
-async def remove_post_stage_2(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    main_message = data.get("main_message")
-    try:
-        post_id =int(message.text)
-        await message.delete()
-    except ValueError:
-        await message.delete()
-        await main_message.message.edit_text(
-            text="❌ Неверный формат ID поста. Введите число."
-        )
-        return
-    posts=data.get("posts")
-    for post in posts:
-        if post.id == post_id:
-            posts.remove(post)
-            break
-    else:
-        await main_message.message.edit_text(
-            text="❌ Пост не найден.Введите корректный ID поста."
-        )
-        return
-    await state.update_data(posts=posts)
-    builder = InlineKeyboardBuilder()
-    builder.button(**goto_main_menu_btn)
-    await main_message.message.edit_text(
-        text=f"✅ Пост [{post_id}] удален.",
-        reply_markup=builder.as_markup(),
-    )
-
-
 @router.callback_query(F.data == Buttons.create_post_callback, Admin.manage_posts)
-async def create_post_stage_1(callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
+async def create_post_stage_1(
+    callback_query: types.CallbackQuery, state: FSMContext, bot: Bot
+):
     data = await state.get_data()
-    #Получаем каналы, фильтруем активные
+    # Получаем каналы, фильтруем активные
     channels = mock_channels
-    channels=[x for x in channels if x.is_active]
+    channels = [x for x in channels if x.is_active]
 
     main_message = data.get("main_message")
     if not channels:
@@ -242,6 +181,7 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
         reply_markup=builder.as_markup(),
     )
 
+
 @router.callback_query(F.data.startswith("channel_"), Admin.manage_posts)
 async def create_post_stage_2(callback_query: types.CallbackQuery, state: FSMContext):
     channel_id = int(callback_query.data.replace("channel_", ""))
@@ -259,6 +199,7 @@ async def create_post_stage_2(callback_query: types.CallbackQuery, state: FSMCon
     await main_message.message.edit_text(
         text=f"📢 Введите заголовок для публикации в канал {channel.name} [{channel.id}]:",
     )
+
 
 @router.message(Admin.manage_posts_set_title)
 async def create_post_stage_3(message: types.Message, state: FSMContext):
@@ -334,11 +275,10 @@ async def add_media(message: types.Message, state: FSMContext):
 
 # Хендлер для установки времени
 @router.message(Admin.manage_posts_set_time)
-async def set_time(
-    message: types.Message, state: FSMContext, bot: Bot):
+async def set_time(message: types.Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts=data.get("posts")
+    posts = data.get("posts")
     try:
         publish_time = pendulum.parse(message.text, strict=False).replace(tzinfo=None)
         await message.delete()
@@ -360,7 +300,7 @@ async def set_time(
     text = data.get("text")
     media_type = data.get("media_type")
     media_file_id = data.get("media_file_id")
-    title=data.get("title")
+    title = data.get("title")
 
     # Сохраняем пост в базу
     post = Post(
@@ -389,25 +329,30 @@ async def set_time(
     )
 
 
-@router.callback_query(F.data==Buttons.list_posts_callback, Admin.manage_posts)
+@router.callback_query(F.data == Buttons.list_posts_callback, Admin.manage_posts)
 async def list_posts(callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
     import copy
+
     page_size = 10
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts=copy.copy(posts_mock)
-    total_pages=len(posts)//page_size
-    page=data.get("page",0)
-    message_text=f"📢 Список постов:\n\n"
-    builder=InlineKeyboardBuilder()
-    for post in posts[page:page+page_size]:
+    posts = copy.copy(posts_mock)
+    total_pages = len(posts) // page_size
+    page = data.get("page", 0)
+    message_text = f"📢 Список постов:\n\n"
+    builder = InlineKeyboardBuilder()
+    for post in posts[page : page + page_size]:
         print(post.text)
-        builder.button(text=f"{post.title}:{post.publish_time}",callback_data=f"post_{post.id}")
-    data["page"]=page+page_size
-    data["posts"]=posts
+        builder.button(
+            text=f"{post.title}:{post.publish_time}", callback_data=f"post_{post.id}"
+        )
+    data["page"] = page + page_size
+    data["posts"] = posts
     await state.set_data(data)
-    if page+page_size<len(posts):
-        builder.button(text=Buttons.forward_text,callback_data=Buttons.forward_callback)
+    if page + page_size < len(posts):
+        builder.button(
+            text=Buttons.forward_text, callback_data=Buttons.forward_callback
+        )
     builder.button(**goto_main_menu_btn)
     builder.adjust(1)
     await state.set_state(Admin.manage_posts)
@@ -415,6 +360,7 @@ async def list_posts(callback_query: types.CallbackQuery, state: FSMContext, bot
         text=message_text,
         reply_markup=builder.as_markup(),
     )
+
 
 @router.callback_query(
     F.data.contains(Buttons.back_callback) | F.data.contains(Buttons.forward_callback),
@@ -465,92 +411,13 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
     )
 
 
-@router.callback_query(F.data.startswith("post_"), Admin.manage_posts)
-async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
-    post_id = int(callback_query.data.replace("post_", ""))
-    await state.update_data(post_id=post_id)
-    data = await state.get_data()
-    main_message = data.get("main_message")
-    posts = data.get("posts")
-    post = None
-    for p in posts:
-        if p.id == post_id:
-            post = p
-            break
 
-    await state.update_data(post=post)
-    details=get_post_details(post)
-    builder=get_post_details_keyboard(post)
-    await main_message.message.edit_text(
-        text=details,
-        reply_markup=builder.as_markup(),
-    )
-
-
-@router.callback_query(F.data == Buttons.edit_title_callback, Admin.manage_posts)
-async def edit_post_title_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    main_message = data.get("main_message")
-    await state.set_state(Admin.edit_post_title)
-    await main_message.message.edit_text(
-        "Введите новый текст заголовка поста:",
-    )
-
-@router.message(Admin.edit_post_title)
-async def edit_post_title_stage_2(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    main_message = data.get("main_message")
-    posts=data.get("posts")
-    post=data.get("post")
-    text=message.text
-    await message.delete()
-    for i,p in enumerate(posts):
-        if p.id == post.id:
-            posts[i].title=text
-            post.title=text
-            break
-    details=get_post_details(post)
-    builder = get_post_details_keyboard(post)
-    await state.set_state(Admin.manage_posts)
-    await main_message.message.edit_text(
-        text=details,
-        reply_markup=builder.as_markup(),
-    )
-
-
-@router.callback_query(F.data == Buttons.edit_callback, Admin.manage_posts)
-async def edit_post_text_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    main_message = data.get("main_message")
-    await state.set_state(Admin.edit_post_text)
-    await main_message.message.edit_text(
-        "Введите новый текст поста:",
-    )
-
-@router.message(Admin.edit_post_text)
-async def edit_post_text_stage_2(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    main_message = data.get("main_message")
-    posts=data.get("posts")
-    post=data.get("post")
-    text=message.text
-    await message.delete()
-    for i,p in enumerate(posts):
-        if p.id == post.id:
-            posts[i].text=text
-            post.text=text
-            break
-    details=get_post_details(post)
-    builder = get_post_details_keyboard(post)
-    await state.set_state(Admin.manage_posts)
-    await main_message.message.edit_text(
-        text=details,
-        reply_markup=builder.as_markup(),
-    )
 
 
 @router.callback_query(F.data == Buttons.edit_time_callback, Admin.manage_posts)
-async def edit_post_time_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
+async def edit_post_time_stage_1(
+    callback_query: types.CallbackQuery, state: FSMContext
+):
     data = await state.get_data()
     main_message = data.get("main_message")
     await state.set_state(Admin.edit_post_time)
@@ -558,12 +425,13 @@ async def edit_post_time_stage_1(callback_query: types.CallbackQuery, state: FSM
         "Введите новое время публикации (например, 2025-04-30 14:00):"
     )
 
+
 @router.message(Admin.edit_post_time)
 async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts=data.get("posts")
-    post=data.get("post")
+    posts = data.get("posts")
+    post = data.get("post")
     try:
         publish_time = pendulum.parse(message.text, strict=False).replace(tzinfo=None)
         await message.delete()
@@ -578,13 +446,13 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
             "❌Время публикации должно быть в будущем."
         )
         return
-    for i,p in enumerate(posts):
+    for i, p in enumerate(posts):
         if p.id == post.id:
-            posts[i].publish_time=publish_time
-            post.publish_time=publish_time
+            posts[i].publish_time = publish_time
+            post.publish_time = publish_time
             break
-    details=get_post_details(post)
-    builder=get_post_details_keyboard(post)
+    details = get_post_details(post)
+    builder = get_post_details_keyboard(post)
     await state.update_data(posts=posts)
     await state.set_state(Admin.manage_posts)
     await main_message.message.edit_text(
@@ -593,41 +461,42 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
     )
 
 
-@router.callback_query(F.data==Buttons.edit_remove_media_callback,
-                       Admin.manage_posts)
+@router.callback_query(F.data == Buttons.edit_remove_media_callback, Admin.manage_posts)
 async def edit_remove_media(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts=data.get("posts")
-    post=data.get("post")
-    for i,p in enumerate(posts):
+    posts = data.get("posts")
+    post = data.get("post")
+    for i, p in enumerate(posts):
         if p.id == post.id:
-            posts[i].media_file_id=None
+            posts[i].media_file_id = None
             posts[i].media_type = None
             break
-    details=get_post_details(post)
-    builder=get_post_details_keyboard(post)
+    details = get_post_details(post)
+    builder = get_post_details_keyboard(post)
     await state.update_data(posts=posts)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
     )
 
-@router.callback_query(F.data==Buttons.edit_add_media_callback,Admin.manage_posts)
-async def edit_add_media_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
+
+@router.callback_query(F.data == Buttons.edit_add_media_callback, Admin.manage_posts)
+async def edit_add_media_stage_1(
+    callback_query: types.CallbackQuery, state: FSMContext
+):
     data = await state.get_data()
     main_message = data.get("main_message")
     await state.set_state(Admin.edit_post_media)
-    await main_message.message.edit_text(
-        "Отправьте медиа (фото, видео, документ):"
-    )
+    await main_message.message.edit_text("Отправьте медиа (фото, видео, документ):")
+
 
 @router.message(Admin.edit_post_media, F.photo | F.video | F.document)
 async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts=data.get("posts")
-    post=data.get("post")
+    posts = data.get("posts")
+    post = data.get("post")
     media_type = None
     media_file_id = None
 
@@ -641,18 +510,18 @@ async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
         media_type = "document"
         media_file_id = message.document.file_id
 
-    for i,p in enumerate(posts):
+    for i, p in enumerate(posts):
         if p.id == post.id:
-            posts[i].media_file_id=media_file_id
+            posts[i].media_file_id = media_file_id
             posts[i].media_type = media_type
-            post.media_file_id=media_file_id
-            post.media_type=media_type
+            post.media_file_id = media_file_id
+            post.media_type = media_type
             break
     await state.update_data(posts=posts)
     await message.delete()
     await state.set_state(Admin.manage_posts)
-    details=get_post_details(post)
-    builder=get_post_details_keyboard(post)
+    details = get_post_details(post)
+    builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
@@ -662,7 +531,7 @@ async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
 # Запуск планировщика при старте бота
 @router.startup()
 async def on_startup(bot: Bot):
-    posts=posts_mock
+    posts = posts_mock
     for post in posts:
         scheduler.add_job(
             publish_post,
@@ -677,4 +546,3 @@ async def on_startup(bot: Bot):
 @router.shutdown()
 async def on_shutdown():
     scheduler.shutdown()
-

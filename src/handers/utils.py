@@ -181,3 +181,34 @@ def get_channel_details_keyboard(channel):
     builder.button(**goto_main_menu_btn)
     builder.adjust(1)
     return builder
+
+def get_post_details(post):
+    return (f"📢 Пост ID:{post.id}:\n\n"
+            f"Заголовок: {post.title}\n\n"
+            f"Текст:{post.text}\n\n"
+            f"Медиа тип: {post.media_type}\n\n"
+            f"Медиа файл: {post.media_file_id}\n\n"
+            f"Создано пользователем: {post.created_by}\n\n"
+            f"Канал: {post.channel_id}\n\n"
+            f"Статус: {post.status}\n\n"
+            f"Время публикации: {post.publish_time.strftime('%Y-%m-%d %H:%M')}")
+
+def get_post_details_keyboard(post):
+    builder = InlineKeyboardBuilder()
+    media_btn = (
+        {"text": Buttons.edit_add_media_text, "callback_data": Buttons.edit_add_media_callback}
+        if post.media_type is  None
+        else {
+            "text": Buttons.edit_remove_media_text,
+            "callback_data": Buttons.edit_remove_media_callback,
+        }
+    )
+    builder.button(text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback)
+    builder.button(text=Buttons.edit_text, callback_data=Buttons.edit_callback)
+    builder.button(
+        text=Buttons.edit_time_text, callback_data=Buttons.edit_time_callback
+    )
+    builder.button(**media_btn)
+    builder.button(**goto_main_menu_btn)
+    builder.adjust(1)
+    return builder
