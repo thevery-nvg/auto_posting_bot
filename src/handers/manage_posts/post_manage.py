@@ -128,11 +128,15 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
         page += page_size
     await state.update_data(page=page)
     builder = InlineKeyboardBuilder()
-
+    edit = data.get("edit")
     for channel in channels[page : page + page_size]:
+        if edit:
+            callback_data = f"edit_channel_{channel.id}"
+        else:
+            callback_data = f"channel_{channel.id}"
         builder.button(
-            text=f"{channel.name} [{channel.id}]",
-            callback_data=f"channel_{channel.id}",
+            text=f"{channel.name} {channel.id}",
+            callback_data=callback_data,
         )
     builder.adjust(1)
 
