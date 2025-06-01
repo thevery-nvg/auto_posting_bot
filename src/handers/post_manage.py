@@ -335,14 +335,18 @@ async def set_time(
     message: types.Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     main_message = data.get("main_message")
+    posts=data.get("posts")
     try:
         publish_time = pendulum.parse(message.text, strict=False).replace(tzinfo=None)
+        await message.delete()
         if publish_time < datetime.now():
             await main_message.message.edit_text(
                 "❌Время публикации должно быть в будущем."
             )
+
             return
     except ValueError:
+        await message.delete()
         await main_message.message.edit_text(
             "❌Неверный формат времени. Используйте, например, 2025-04-30 14:00."
         )
@@ -366,6 +370,8 @@ async def set_time(
         created_by=message.from_user.id,
         status=PostStatus.PENDING,
     )
+    posts.append(post)
+    await state.update_data(posts=posts)
     scheduler.add_job(
         publish_post,
         trigger=DateTrigger(run_date=publish_time),
@@ -478,8 +484,6 @@ async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
     )
 
 
-
-
 @router.callback_query(F.data == Buttons.edit_title_callback, Admin.manage_posts)
 async def edit_post_title_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -509,8 +513,6 @@ async def edit_post_title_stage_2(message: types.Message, state: FSMContext):
         text=details,
         reply_markup=builder.as_markup(),
     )
-
-
 
 
 @router.callback_query(F.data == Buttons.edit_callback, Admin.manage_posts)
@@ -561,7 +563,9 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
     post=data.get("post")
     try:
         publish_time = pendulum.parse(message.text, strict=False).replace(tzinfo=None)
+        await message.delete()
     except ValueError:
+        await message.delete()
         await main_message.message.edit_text(
             "❌Неверный формат времени. Используйте, например, 2025-04-30 14:00."
         )
@@ -571,7 +575,6 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
             "❌Время публикации должно быть в будущем."
         )
         return
-    await message.delete()
     for i,p in enumerate(posts):
         if p.id == post.id:
             posts[i].publish_time=publish_time
@@ -579,6 +582,7 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
             break
     details=get_post_details(post)
     builder=get_post_details_keyboard(post)
+    await state.update_data(posts=posts)
     await state.set_state(Admin.manage_posts)
     await main_message.message.edit_text(
         text=details,
@@ -670,3 +674,4 @@ async def on_startup(bot: Bot):
 @router.shutdown()
 async def on_shutdown():
     scheduler.shutdown()
+

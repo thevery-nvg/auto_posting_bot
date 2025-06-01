@@ -32,8 +32,16 @@ class Buttons:
     add_channel_callback = "#add_channel#"
     remove_channel_text = "Удалить канал (по ID)"
     remove_channel_callback = "#remove_channel#"
+    list_types_text = "Типы каналов"
+    list_types_callback = "#list_types#"
     list_channels_text = "Список каналов"
     list_channels_callback = "#list_channels#"
+    all_channels_text = "Все каналы"
+    all_channels_callback = "#all_channels#"
+    active_channels_text = "Активные каналы"
+    active_channels_callback = "#active_channels#"
+    inactive_channels_text = "Неактивные каналы"
+    inactive_channels_callback = "#inactive_channels#"
     # Manage moderator
     add_moderator_text = "Добавить модератора"
     add_moderator_callback = "#add_moderator#"
@@ -137,3 +145,39 @@ async def log_action(
     )
     db_session.add(log)
     await db_session.commit()
+
+
+def get_channel_details_text(channel):
+    if not channel:
+        return "No details"
+    return (
+        f"<b>📢 Информация о канале</b>\n\n"
+        f"<b>🆔 ID:</b> <code>{channel.id}</code>\n"
+        f"<b>🏷 Название:</b> <code>{channel.name}</code>\n\n"
+        f"<b>⚙️ Настройки:</b>\n"
+        f"  • <b>Статус:</b> {'<b><u>✅ АКТИВЕН</u></b>' if channel.is_active else '❌ неактивен'}\n"
+        f"  • <b>Модерация:</b> {'<b><u>✅ ВКЛЮЧЕНА</u></b>' if channel.moderation_enabled else '❌ отключена'}\n"
+        f"  • <b>Уведомления:</b> <code>{channel.notification_chat_id or '❌ не настроены'}</code>\n\n"
+        f"<b>📅 Даты:</b>\n"
+        f"  • <b>Создан:</b> <code>{channel.created_at}</code>\n"
+        f"  • <b>Обновлен:</b> <code>{channel.updated_at}</code>\n"
+    )
+
+def get_channel_details_keyboard(channel):
+    builder = InlineKeyboardBuilder()
+    if not channel:
+        builder.button(**goto_main_menu_btn)
+        builder.adjust(1)
+        return builder
+    builder.button(text="Изменить имя", callback_data=f"change_name_{channel.id}")
+    builder.button(text="Отключить" if channel.is_active else "Включить", callback_data=f"switch_channel_status_{channel.id}")
+    builder.button(
+        text="Отключить модерацию" if channel.moderation_enabled else "Включить модерацию", callback_data=f"switch_moderation_status_{channel.id}"
+    )
+    builder.button(
+        text="Изменить чат уведомлений",
+        callback_data=f"change_chat_notification_{channel.id}",
+    )
+    builder.button(**goto_main_menu_btn)
+    builder.adjust(1)
+    return builder

@@ -13,29 +13,7 @@ from src.middlewares.db_middleware import DatabaseMiddleware
 from src.utils.logger import setup_logging
 from src.utils.smart_session import SmartAiohttpSession
 from src.config import settings
-from src.core.models import Channel
 
-
-from utils.connect_to_services import wait_sqlalchemy
-
-
-# async def create_db_connections(dispatcher: Dispatcher) -> None:
-#     logger.debug("Connecting to SQLAlchemy[PostgreSQL]", db="main")
-#     try:
-#         db_pool = await wait_sqlalchemy()
-#     except tenacity.RetryError:
-#         logger.error("Failed to connect to SQLAlchemy[PostgreSQL]", db="main")
-#         exit(1)
-#     else:
-#         logger.debug("Succesfully connected to SQLAlchemy[PostgreSQL]", db="main")
-#     dispatcher["db_pool"] = db_pool
-#
-#
-#
-# async def close_db_connections(dispatcher: Dispatcher) -> None:
-#     if "db_pool" in dispatcher.workflow_data:
-#         db_pool: AsyncSession = dispatcher["db_pool"]
-#         await db_pool.close()
 
 
 def setup_handlers(dp: Dispatcher) -> None:
