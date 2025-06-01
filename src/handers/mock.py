@@ -301,6 +301,28 @@ posts_mock = [
         status=PostStatus.PENDING,
         created_by=123456789,
     ),
+    Post(
+        title="Тестовый пост10",
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=1500),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+
+    ),
+    Post(
+        title="Тестовый пост11",
+        channel_id=-1002164486161,
+        text="Тестовый пост2",
+        media_type=None,
+        media_file_id=None,
+        publish_time=datetime.now() + timedelta(seconds=1600),
+        status=PostStatus.PENDING,
+        created_by=123456789,
+    )
+
 ]
 posts_mock_dict={post.id:post for post in posts_mock}
 

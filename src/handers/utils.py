@@ -105,6 +105,7 @@ class Admin(StatesGroup):
     manage_posts_media = State()
     manage_posts_set_time = State()
     manage_posts_switch_page = State()
+    manage_posts_details = State()
 
     edit_post_text = State()
     edit_post_time = State()

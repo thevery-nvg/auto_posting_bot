@@ -348,7 +348,6 @@ async def list_posts(callback_query: types.CallbackQuery, state: FSMContext, bot
     message_text = f"📢 Список постов:\n\n"
     builder = InlineKeyboardBuilder()
     for post in posts[page : page + page_size]:
-        print(post.text)
         builder.button(
             text=f"{post.title}:{post.publish_time}", callback_data=f"post_{post.id}"
         )
@@ -361,7 +360,7 @@ async def list_posts(callback_query: types.CallbackQuery, state: FSMContext, bot
         )
     builder.button(**goto_main_menu_btn)
     builder.adjust(1)
-    await state.set_state(Admin.manage_posts)
+    await state.set_state(Admin.manage_posts_details)
     await main_message.message.edit_text(
         text=message_text,
         reply_markup=builder.as_markup(),
@@ -370,7 +369,7 @@ async def list_posts(callback_query: types.CallbackQuery, state: FSMContext, bot
 
 @router.callback_query(
     F.data.contains(Buttons.back_callback) | F.data.contains(Buttons.forward_callback),
-    Admin.manage_posts,
+    Admin.manage_posts_details,
 )
 async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
     page_size = 10
@@ -388,7 +387,7 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
 
     for post in posts[page : page + page_size]:
         builder.button(
-            text=f"{post.id}:{post.publish_time}", callback_data=f"post_{post.id}"
+            text=f"{post.title}:{post.publish_time}", callback_data=f"post_{post.id}"
         )
     builder.adjust(1)
 

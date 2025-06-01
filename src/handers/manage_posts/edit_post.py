@@ -25,7 +25,7 @@ from src.handers.utils import (
 router = Router(name="edit_post")
 
 
-@router.callback_query(F.data.startswith("post_"), Admin.manage_posts)
+@router.callback_query(F.data.startswith("post_"), Admin.manage_posts_details)
 async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
     post_id = int(callback_query.data.replace("post_", ""))
     await state.update_data(post_id=post_id)
@@ -46,7 +46,7 @@ async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
     )
 
 
-@router.callback_query(F.data == Buttons.edit_title_callback, Admin.manage_posts)
+@router.callback_query(F.data == Buttons.edit_title_callback, Admin.manage_posts_details)
 async def edit_post_title_stage_1(
     callback_query: types.CallbackQuery, state: FSMContext
 ):
@@ -80,7 +80,7 @@ async def edit_post_title_stage_2(message: types.Message, state: FSMContext):
     )
 
 
-@router.callback_query(F.data == Buttons.edit_callback, Admin.manage_posts)
+@router.callback_query(F.data == Buttons.edit_callback, Admin.manage_posts_details)
 async def edit_post_text_stage_1(
     callback_query: types.CallbackQuery, state: FSMContext
 ):
