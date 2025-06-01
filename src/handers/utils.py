@@ -69,6 +69,8 @@ class Buttons:
     edit_add_media_callback = "#add_media#"
     edit_remove_media_text = "Удалить медиа"
     edit_remove_media_callback = "#remove_media#"
+    edit_channel_text = "Изменить канал"
+    edit_channel_callback = "#edit_channel#"
 
     forward_text = "Вперед"
     forward_callback = "#forward#"
@@ -197,7 +199,7 @@ def get_post_details_keyboard(post):
     builder = InlineKeyboardBuilder()
     media_btn = (
         {"text": Buttons.edit_add_media_text, "callback_data": Buttons.edit_add_media_callback}
-        if post.media_type is  None
+        if not post.media_type
         else {
             "text": Buttons.edit_remove_media_text,
             "callback_data": Buttons.edit_remove_media_callback,
@@ -205,6 +207,7 @@ def get_post_details_keyboard(post):
     )
     builder.button(text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback)
     builder.button(text=Buttons.edit_text, callback_data=Buttons.edit_callback)
+    builder.button(text=Buttons.edit_channel_text, callback_data=Buttons.edit_channel_callback)
     builder.button(
         text=Buttons.edit_time_text, callback_data=Buttons.edit_time_callback
     )

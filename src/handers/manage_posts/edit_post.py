@@ -36,7 +36,8 @@ async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
         if p.id == post_id:
             post = p
             break
-
+    print(post.title)
+    print(post.channel_id)
     await state.update_data(post=post)
     details = get_post_details(post)
     builder = get_post_details_keyboard(post)
