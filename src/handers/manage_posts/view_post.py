@@ -20,12 +20,13 @@ from src.handers.utils import (
     Admin,
     get_post_details,
     get_post_details_keyboard,
+    publish_post,
 )
 
 router = Router(name="edit_post")
 
 
-@router.callback_query(F.data.startswith("post_"), Admin.manage_posts_details)
+@router.callback_query(F.data.startswith("post_"), Admin.posts_list)
 async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
     post_id = int(callback_query.data.replace("post_", ""))
     await state.update_data(post_id=post_id)
@@ -37,6 +38,7 @@ async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
         if p.id == post_id:
             post = p
             break
+    await state.set_state(Admin.manage_posts_details)
     await state.update_data(post=post)
     details = get_post_details(post)
     builder = get_post_details_keyboard(post)
@@ -73,14 +75,14 @@ async def edit_post_title_stage_2(message: types.Message, state: FSMContext):
             break
     details = get_post_details(post)
     builder = get_post_details_keyboard(post)
-    await state.set_state(Admin.manage_posts)
+    await state.set_state(Admin.posts_list)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
     )
 
 
-@router.callback_query(F.data == Buttons.edit_callback, Admin.manage_posts_details)
+@router.callback_query(F.data == Buttons.edit_callback, Admin.posts_list)
 async def edit_post_text_stage_1(
     callback_query: types.CallbackQuery, state: FSMContext
 ):
@@ -107,13 +109,13 @@ async def edit_post_text_stage_2(message: types.Message, state: FSMContext):
             break
     details = get_post_details(post)
     builder = get_post_details_keyboard(post)
-    await state.set_state(Admin.manage_posts)
+    await state.set_state(Admin.posts_list)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
     )
 
-@router.callback_query(F.data == Buttons.edit_time_callback, Admin.manage_posts)
+@router.callback_query(F.data == Buttons.edit_time_callback, Admin.posts_list)
 async def edit_post_time_stage_1(
     callback_query: types.CallbackQuery, state: FSMContext
 ):
@@ -153,14 +155,14 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
     details = get_post_details(post)
     builder = get_post_details_keyboard(post)
     await state.update_data(posts=posts)
-    await state.set_state(Admin.manage_posts)
+    await state.set_state(Admin.posts_list)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
     )
 
 
-@router.callback_query(F.data == Buttons.edit_remove_media_callback, Admin.manage_posts)
+@router.callback_query(F.data == Buttons.edit_remove_media_callback, Admin.posts_list)
 async def edit_remove_media(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
@@ -180,7 +182,7 @@ async def edit_remove_media(callback_query: types.CallbackQuery, state: FSMConte
     )
 
 
-@router.callback_query(F.data == Buttons.edit_add_media_callback, Admin.manage_posts)
+@router.callback_query(F.data == Buttons.edit_add_media_callback, Admin.posts_list)
 async def edit_add_media_stage_1(
     callback_query: types.CallbackQuery, state: FSMContext
 ):
@@ -218,10 +220,64 @@ async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
             break
     await state.update_data(posts=posts)
     await message.delete()
-    await state.set_state(Admin.manage_posts)
+    await state.set_state(Admin.posts_list)
     details = get_post_details(post)
     builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
     )
+
+@router.callback_query(F.data == Buttons.cancel_post_callback, Admin.posts_list)
+async def cancel_post(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    posts = data.get("posts")
+    post = data.get("post")
+    for i, p in enumerate(posts):
+        if p.id == post.id:
+            posts[i].status=PostStatus.CANCELLED
+            post.status=PostStatus.CANCELLED
+            break
+    await state.update_data(posts=posts,post=post)
+    details = get_post_details(post)
+    builder = get_post_details_keyboard(post)
+    await main_message.message.edit_text(
+        text=details,
+        reply_markup=builder.as_markup(),
+    )
+
+@router.callback_query(F.data == Buttons.publish_now_callback, Admin.posts_list)
+async def publish_now_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    builder=InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="Да", callback_data=Buttons.yes_sure_callback),
+        InlineKeyboardButton(text="Нет", callback_data=Buttons.no_god_no_callback),
+    )
+    await main_message.message.edit_text("Вы уверены, что хотите опубликовать пост сейчас?",
+                                         reply_markup=builder.as_markup())
+
+@router.callback_query(F.data.contains(Buttons.yes_sure_callback)
+                       |F.data.contains(Buttons.no_god_no_callback),
+                       Admin.posts_list)
+async def publish_now_stage_2(callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    posts = data.get("posts")
+    post = data.get("post")
+    builder=InlineKeyboardBuilder()
+    builder.button(**goto_main_menu_btn)
+    if callback_query.data==Buttons.yes_sure_callback:
+        await publish_post(bot, post)
+        await main_message.message.edit_text(
+            "Пост опубликован!", reply_markup=builder.as_markup()
+        )
+    else:
+        details = get_post_details(post)
+        builder = get_post_details_keyboard(post)
+        await main_message.message.edit_text(
+            text=details,
+            reply_markup=builder.as_markup(),
+        )

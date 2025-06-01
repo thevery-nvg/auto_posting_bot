@@ -11,7 +11,7 @@ from io import StringIO
 from typing import Optional
 
 from src.core.models import User, UserRole, Channel, Stat, Log, Post
-
+from src.handers.mock import PostStatus
 
 class Buttons:
     # Main menu
@@ -61,7 +61,8 @@ class Buttons:
     skip_media_callback = "#skip_media#"
     list_posts_types_text = "Списки постов"
     list_posts_types_callback = "#list_posts_types#"
-
+    cancel_post_text= "Отменить пост"
+    cancel_post_callback = "#cancel_post#"
 
     pending_posts_text = "Ожидающие публикации"
     pending_posts_callback = "#pending_posts#"
@@ -69,6 +70,10 @@ class Buttons:
     published_posts_callback = "#published_posts#"
     cancelled_posts_text = "Отмененные посты"
     cancelled_posts_callback = "#cancelled_posts#"
+    publish_now_text= "Опубликовать сейчас"
+    publish_now_callback = "#publish_now#"
+    yes_sure_callback= "#yes_publish_now#"
+    no_god_no_callback= "#no_publish_now#"
 
     # Post menu
     edit_text = "Редактировать текст"
@@ -237,16 +242,14 @@ def get_post_details_keyboard(post):
             "callback_data": Buttons.edit_remove_media_callback,
         }
     )
-    builder.button(
-        text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback
-    )
+    builder.button(text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback)
     builder.button(text=Buttons.edit_text, callback_data=Buttons.edit_callback)
-    builder.button(
-        text=Buttons.edit_channel_text, callback_data=Buttons.edit_channel_callback
-    )
-    builder.button(
-        text=Buttons.edit_time_text, callback_data=Buttons.edit_time_callback
-    )
+    builder.button(text=Buttons.edit_channel_text, callback_data=Buttons.edit_channel_callback)
+    builder.button(text=Buttons.edit_time_text, callback_data=Buttons.edit_time_callback)
+    if post.status != PostStatus.CANCELLED:
+        builder.button(text=Buttons.cancel_post_text, callback_data=Buttons.cancel_post_callback)
+    if post.status != PostStatus.PUBLISHED:
+        builder.button(text=Buttons.publish_now_text, callback_data=Buttons.publish_now_callback)
     builder.button(**media_btn)
     builder.button(**goto_main_menu_btn)
     builder.adjust(1)

@@ -66,7 +66,7 @@ async def manage_posts(callback_query: types.CallbackQuery, state: FSMContext):
 # Запуск планировщика при старте бота
 @router.startup()
 async def on_startup(bot: Bot):
-    posts = posts_mock
+    posts = [x for x in posts_mock if x.status == PostStatus.PENDING]
     for post in posts:
         scheduler.add_job(
             publish_post,
