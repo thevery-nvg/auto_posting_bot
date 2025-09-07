@@ -13,8 +13,8 @@ from io import StringIO
 from typing import Optional
 
 from src.core.models import User, UserRole, Stat, Log
-from src.handers.utils import is_user_admin, log_action, check_admin_access,Buttons,goto_main_menu_btn,Admin
-from src.handers.mock import channels as mock_channels
+from src.handlers.utils import is_user_admin, log_action, check_admin_access,Buttons,goto_main_menu_btn,Admin
+from src.handlers.mock import channels as mock_channels
 
 router = Router(name="admin")
 

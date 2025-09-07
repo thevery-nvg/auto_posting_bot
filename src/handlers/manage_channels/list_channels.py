@@ -12,14 +12,15 @@ from io import StringIO
 from typing import Optional
 
 from src.core.models import User, UserRole, Stat, Log
-from src.handers.utils import (
+from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
     get_channel_details_text,
     get_channel_details_keyboard,
 )
-from src.handers.mock import channels as mock_channels, Channel
+from src.handlers.mock import channels as mock_channels, Channel
+from src.core.crud import get_active_channels, get_all_channels,get_inactive_channels
 
 router = Router(name="list_channels")
 
@@ -54,17 +55,19 @@ async def select_list_type(callback_query: types.CallbackQuery, state: FSMContex
     | F.data.contains(Buttons.inactive_channels_callback),
     Admin.manage_channels,
 )
-async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
+async def list_channels(callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     page_size = 5
     data = await state.get_data()
     main_message = data.get("main_message")
-    channels = data.get("channels")
-
-    if callback_query.data == Buttons.active_channels_callback:
-        channels = [x for x in channels if x.is_active]
-    elif callback_query.data == Buttons.inactive_channels_callback:
-        channels = [x for x in channels if not x.is_active]
-
+    channels = data.get("channels",None)
+    if not channels:
+        if callback_query.data == Buttons.active_channels_callback:
+            channels = await get_active_channels(db_session)
+        elif callback_query.data == Buttons.inactive_channels_callback:
+            channels = await get_inactive_channels(db_session)
+        else:
+            channels = await get_all_channels(db_session)
+        await state.update_data(channels=channels)
     page = data.get("page", 0)
     total_pages = len(channels) // page_size
     message_text = f"📢 Список каналов ({total_pages=}):\n\n"

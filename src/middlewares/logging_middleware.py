@@ -81,7 +81,7 @@ class LoggingMiddleware(BaseMiddleware):
         if message.text:
             log_context["text"] = message.text[:200]  # Ограничиваем длину текста
 
-        logger.bind(**log_context).debug(f"Received message {message.text}")
+        logger.bind(**log_context).debug(f"Received message {message.text} from {message.from_user.id} MIDDLEWARE")
 
     @staticmethod
     def _log_callback_query(callback_query, logger):

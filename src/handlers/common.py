@@ -1,26 +1,17 @@
-import pandas as pd
-from aiogram import Router, F, types, Bot
+from aiogram import Router, F, types
 from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from sqlalchemy.future import select
-from datetime import datetime
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from io import StringIO
-from typing import Optional
-
-from src.core.models import User, UserRole, Channel, Stat, Log
-from src.handers.utils import is_user_admin, log_action, check_admin_access
-
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from src.core.models import User, UserRole
+from src.handlers.mock import channels, posts_mock
 
 router = Router(name="common")
 example_router = Router(name="example")
 
 
 @router.message(Command("start"))
-async def cmd_start(message: types.Message, db_session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]):
+async def cmd_start(message: types.Message, db_session: AsyncSession):
     logger.info(f"Received /start command from [{message.from_user.id}]")
     user = await db_session.get(User, message.from_user.id)
     if not user:
@@ -32,6 +23,19 @@ async def cmd_start(message: types.Message, db_session: AsyncSession, session_fa
         db_session.add(user)
         await db_session.commit()
     await message.answer(f"Welcome, {user.id=} {user.username=}!")
+
+
+@router.message(Command("write"))
+async def cmd_write(message: types.Message, db_session: AsyncSession):
+    logger.info(f"Received /write command from [{message.from_user.id}]")
+    for post in posts_mock:
+        post.created_by=5528297066
+        db_session.add(post)
+
+    for channel in channels:
+        db_session.add(channel)
+    await db_session.commit()
+    logger.info(f"channels writed to db")
 
 
 # Пример хендлера с явным управлением сессией
@@ -102,5 +106,3 @@ async def update_name(
             await message.answer("❌ Не удалось обновить имя")
             logger.error(f"Update name error: {e}")
             raise
-
-

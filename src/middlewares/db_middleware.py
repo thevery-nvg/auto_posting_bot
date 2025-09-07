@@ -1,7 +1,6 @@
 from aiogram import BaseMiddleware
 from aiogram.types import Update
 from typing import Callable, Dict, Any, Awaitable
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DatabaseMiddleware(BaseMiddleware):
@@ -11,15 +10,13 @@ class DatabaseMiddleware(BaseMiddleware):
         event: Update,
         data: Dict[str, Any],
     ) -> Any:
-        # Получаем session_factory из workflow_data диспетчера
-        session_factory = data["dispatcher"].workflow_data["session_factory"]
 
-        async with session_factory() as session:
+        db_manager = data["dispatcher"].workflow_data["db_manager"]
+
+        session_generator = db_manager.get_async_session()
+        async for session in session_generator:
             data["db_session"] = session
             try:
                 return await handler(event, data)
-            except Exception:
-                await session.rollback()
-                raise
             finally:
                 await session.close()

@@ -11,8 +11,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from io import StringIO
 from typing import Optional
 
+from core.crud import update_channel
 from src.core.models import User, UserRole, Stat, Log
-from src.handers.utils import (
+from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
@@ -20,7 +21,7 @@ from src.handers.utils import (
     get_channel_details_keyboard,
 )
 
-from src.handers.mock import channels as mock_channels, Channel
+from src.handlers.mock import channels as mock_channels, Channel
 
 router = Router(name="view_channel")
 
@@ -54,7 +55,7 @@ async def change_channel_name_stage_1(
 
 @router.message(Admin.manage_channels_change_name)
 async def change_channel_name_stage_2(
-    message: types.Message, state: FSMContext, bot: Bot
+    message: types.Message, state: FSMContext,db_session:AsyncSession
 ):
     data = await state.get_data()
     channel_id = data.get("channel_id")
@@ -69,6 +70,7 @@ async def change_channel_name_stage_2(
             c.updated_at = datetime.now()
             channel = c
             break
+    await update_channel(db_session,channel)
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)
     await state.set_state(Admin.manage_channels)
@@ -79,7 +81,7 @@ async def change_channel_name_stage_2(
 @router.callback_query(
     F.data.startswith("switch_channel_status_"), Admin.manage_channels
 )
-async def switch_channel_status(callback_query: types.CallbackQuery, state: FSMContext):
+async def switch_channel_status(callback_query: types.CallbackQuery, state: FSMContext,db_session:AsyncSession):
     channel_id = int(callback_query.data.replace("switch_channel_status_", ""))
     data = await state.get_data()
     channels = data.get("channels")
@@ -91,6 +93,7 @@ async def switch_channel_status(callback_query: types.CallbackQuery, state: FSMC
             c.updated_at = datetime.now()
             channel = c
             break
+    await update_channel(db_session, channel)
     await state.update_data(channels=channels)
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)
@@ -101,7 +104,7 @@ async def switch_channel_status(callback_query: types.CallbackQuery, state: FSMC
     F.data.startswith("switch_moderation_status_"), Admin.manage_channels
 )
 async def switch_moderation_status(
-    callback_query: types.CallbackQuery, state: FSMContext, bot: Bot
+    callback_query: types.CallbackQuery, state: FSMContext,db_session:AsyncSession
 ):
     channel_id = int(callback_query.data.replace("switch_moderation_status_", ""))
     data = await state.get_data()
@@ -114,6 +117,7 @@ async def switch_moderation_status(
             channels[i].updated_at = datetime.now()
             channel = channels[i]
             break
+    await update_channel(db_session, channel)
     await state.update_data(channels=channels)
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)
@@ -136,7 +140,7 @@ async def change_chat_notification_stage_1(
 
 @router.message(Admin.manage_channels_change_notification)
 async def change_chat_notification_stage_2(
-    message: types.Message, state: FSMContext, bot: Bot
+    message: types.Message, state: FSMContext,db_session:AsyncSession
 ):
     data = await state.get_data()
     main_message = data.get("main_message")
@@ -158,6 +162,7 @@ async def change_chat_notification_stage_2(
             channels[i].updated_at = datetime.now()
             channel = channels[i]
             break
+    await update_channel(db_session, channel)
     await state.update_data(channels=channels)
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)

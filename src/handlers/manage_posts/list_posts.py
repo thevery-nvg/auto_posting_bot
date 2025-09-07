@@ -13,9 +13,9 @@ from apscheduler.triggers.date import DateTrigger
 from datetime import datetime
 import pendulum
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from src.handers.mock import channels as mock_channels
-from src.handers.mock import Post, PostStatus, posts_mock, posts_mock_dict
-from src.handers.utils import (
+from src.handlers.mock import channels as mock_channels
+from src.handlers.mock import Post, PostStatus, posts_mock, posts_mock_dict
+from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
@@ -24,7 +24,7 @@ from src.handers.utils import (
     publish_post,
 )
 
-from src.handers.manage_posts.shedule import scheduler
+from src.handlers.manage_posts.shedule import scheduler
 
 router = Router(name="list_posts")
 

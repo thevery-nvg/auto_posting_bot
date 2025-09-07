@@ -11,7 +11,9 @@ from io import StringIO
 from typing import Optional
 
 from src.core.models import User, UserRole, Channel, Stat, Log, Post
-from src.handers.mock import PostStatus
+from src.handlers.mock import PostStatus
+
+from loguru import logger
 
 class Buttons:
     # Main menu
@@ -260,6 +262,7 @@ async def publish_post(bot: Bot, post: Post):
     try:
         if post.media_file_id and post.media_type:
             if post.media_type == "photo":
+                logger.info(f"Post ID:{post.id} is published")
                 await bot.send_photo(
                     chat_id=post.channel_id,
                     photo=post.media_file_id,
@@ -267,6 +270,7 @@ async def publish_post(bot: Bot, post: Post):
                     parse_mode="Markdown",
                 )
             elif post.media_type == "video":
+                logger.info(f"Post ID:{post.id} is published")
                 await bot.send_video(
                     chat_id=post.channel_id,
                     video=post.media_file_id,
@@ -274,6 +278,7 @@ async def publish_post(bot: Bot, post: Post):
                     parse_mode="Markdown",
                 )
             elif post.media_type == "document":
+                logger.info(f"Post ID:{post.id} is published")
                 await bot.send_document(
                     chat_id=post.channel_id,
                     document=post.media_file_id,
@@ -281,6 +286,7 @@ async def publish_post(bot: Bot, post: Post):
                     parse_mode="Markdown",
                 )
         else:
+            logger.info(f"Post ID:{post.id} is published")
             await bot.send_message(
                 chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
             )

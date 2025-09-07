@@ -1,25 +1,28 @@
-from aiogram import Router, F, types, Bot
+from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from src.handers.utils import (
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.crud import get_all_channels
+from src.handlers.manage_channels.add_channel import router as add_channel_router
+from src.handlers.manage_channels.list_channels import router as list_channels_router
+from src.handlers.manage_channels.remove_channel import router as remove_channel_router
+from src.handlers.manage_channels.view_channel import router as view_channel_router
+from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
-
 )
-from src.handers.manage_channels.add_channel import router as add_channel_router
-from src.handers.manage_channels.remove_channel import router as remove_channel_router
-from src.handers.manage_channels.list_channels import router as list_channels_router
-from src.handers.manage_channels.view_channel import router as view_channel_router
-from src.handers.mock import channels as mock_channels, Channel
 
 router = Router(name="manage_channels")
 
 
 @router.callback_query(F.data == Buttons.manage_channels_callback, Admin.main)
-async def manage_channels(callback_query: types.CallbackQuery, state: FSMContext):
+async def manage_channels(
+    callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession
+):
     # ТУТ ПОЛУЧЕНИЕ КАНАЛОВ
-    channels = mock_channels
+    channels = await get_all_channels(db_session)
     await state.update_data(channels=channels)
     builder = InlineKeyboardBuilder()
     builder.button(
@@ -41,11 +44,7 @@ async def manage_channels(callback_query: types.CallbackQuery, state: FSMContext
     await callback_query.answer()
 
 
-
 router.include_router(add_channel_router)
 router.include_router(remove_channel_router)
 router.include_router(list_channels_router)
 router.include_router(view_channel_router)
-
-
-

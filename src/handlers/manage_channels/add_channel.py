@@ -1,25 +1,19 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from sqlalchemy import func
-from aiogram import Router, F, types, Bot
-from aiogram.filters import Command, StateFilter
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup, any_state
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from aiogram import Router, F, types
 from datetime import datetime
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from io import StringIO
-from typing import Optional
 
-from src.core.models import User, UserRole, Stat, Log
-from src.handers.utils import (
+from aiogram import Router, F, types
+from aiogram.fsm.context import FSMContext
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.crud import add_channel
+from src.handlers.mock import Channel
+from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
     get_channel_details_text,
-    get_channel_details_keyboard,
 )
-from src.handers.mock import channels as mock_channels, Channel
 
 router = Router(name="add_channel")
 
@@ -65,7 +59,9 @@ async def add_channel_stage_3(message: types.Message, state: FSMContext):
 
 
 @router.message(Admin.add_notification_id)
-async def add_channel_stage_4(message: types.Message, state: FSMContext):
+async def add_channel_stage_4(
+    message: types.Message, state: FSMContext, db_session: AsyncSession
+):
     data = await state.get_data()
     main_message = data.get("main_message")
     try:
@@ -91,6 +87,7 @@ async def add_channel_stage_4(message: types.Message, state: FSMContext):
     )
     channels = data.get("channels")
     channels.append(new_channel)
+    await add_channel(db_session, new_channel)
     builder = InlineKeyboardBuilder()
     builder.button(**goto_main_menu_btn)
     await state.update_data(channels=channels)
@@ -98,5 +95,3 @@ async def add_channel_stage_4(message: types.Message, state: FSMContext):
     await main_message.message.edit_text(
         text=f"Канал успешно добавлен!\n\n{details}", reply_markup=builder.as_markup()
     )
-
-

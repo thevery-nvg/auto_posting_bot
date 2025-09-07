@@ -1,7 +1,9 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from src.core.models import Channel, Post, PostStatus, User
+
+from src.core.models import Channel, Post, PostStatus
+
 
 # Channel CRUD operations
 async def get_all_channels(session: AsyncSession):
