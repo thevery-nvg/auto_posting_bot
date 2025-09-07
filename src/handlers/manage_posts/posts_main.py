@@ -12,13 +12,11 @@ from apscheduler.triggers.date import DateTrigger
 from datetime import datetime
 import pendulum
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from src.handlers.mock import channels as mock_channels
-from src.handlers.mock import Post, PostStatus, posts_mock, posts_mock_dict
 from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
-    get_post_details,
+    get_post_details_text,
     get_post_details_keyboard,
     publish_post,
 )
@@ -62,22 +60,22 @@ async def manage_posts(callback_query: types.CallbackQuery, state: FSMContext):
 
 
 
-# from src.core.crud import get_pending_posts
-# # Запуск планировщика при старте бота
-# @router.startup()
-# async def on_startup(bot: Bot, db_session: AsyncSession):
-#     posts = await get_pending_posts(db_session)
-#     for post in posts:
-#         scheduler.add_job(
-#             publish_post,
-#             trigger=DateTrigger(run_date=post.publish_time),
-#             args=[bot, post],
-#             id=f"post_{post.id}",
-#         )
-#     scheduler.start()
-#
-#
-# # Остановка планировщика при завершении
-# @router.shutdown()
-# async def on_shutdown():
-#     scheduler.shutdown()
+from src.core.crud import get_pending_posts
+# Запуск планировщика при старте бота
+# posts = await get_pending_posts(db_session)
+# for post in posts:
+#     scheduler.add_job(
+#         publish_post,
+#         trigger=DateTrigger(run_date=post.publish_time),
+#         args=[bot, post],
+#         id=f"post_{post.id}",
+#     )
+@router.startup()
+async def on_startup(bot: Bot):
+    scheduler.start()
+
+
+# Остановка планировщика при завершении
+@router.shutdown()
+async def on_shutdown():
+    scheduler.shutdown()

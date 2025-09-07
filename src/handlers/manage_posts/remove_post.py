@@ -26,7 +26,6 @@ router = Router(name="remove_post")
 @router.callback_query(F.data == Buttons.remove_post_callback, Admin.manage_posts)
 async def remove_post_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    # await state.update_data(posts=posts_mock)
     main_message = data.get("main_message")
     await state.set_state(Admin.remove_post)
     builder = InlineKeyboardBuilder()

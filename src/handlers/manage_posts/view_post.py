@@ -18,7 +18,7 @@ from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
-    get_post_details,
+    get_post_details_text,
     get_post_details_keyboard,
     publish_post,
 )
@@ -40,7 +40,7 @@ async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
             break
     await state.set_state(Admin.manage_posts_details)
     await state.update_data(post=post)
-    details = get_post_details(post)
+    details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,
@@ -75,7 +75,7 @@ async def edit_post_title_stage_2(message: types.Message, state: FSMContext):
             posts[i].title = text
             post.title = text
             break
-    details = get_post_details(post)
+    details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await state.set_state(Admin.posts_list)
     await main_message.message.edit_text(
@@ -109,7 +109,7 @@ async def edit_post_text_stage_2(message: types.Message, state: FSMContext):
             posts[i].text = text
             post.text = text
             break
-    details = get_post_details(post)
+    details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await state.set_state(Admin.posts_list)
     await main_message.message.edit_text(
@@ -155,7 +155,7 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
             posts[i].publish_time = publish_time
             post.publish_time = publish_time
             break
-    details = get_post_details(post)
+    details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await state.update_data(posts=posts)
     await state.set_state(Admin.posts_list)
@@ -176,7 +176,7 @@ async def edit_remove_media(callback_query: types.CallbackQuery, state: FSMConte
             posts[i].media_file_id = None
             posts[i].media_type = None
             break
-    details = get_post_details(post)
+    details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await state.update_data(posts=posts)
     await main_message.message.edit_text(
@@ -224,7 +224,7 @@ async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
     await state.update_data(posts=posts)
     await message.delete()
     await state.set_state(Admin.posts_list)
-    details = get_post_details(post)
+    details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,
@@ -244,7 +244,7 @@ async def cancel_post(callback_query: types.CallbackQuery, state: FSMContext):
             post.status = PostStatus.CANCELLED
             break
     await state.update_data(posts=posts, post=post)
-    details = get_post_details(post)
+    details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,
@@ -287,7 +287,7 @@ async def publish_now_stage_2(
             "Пост опубликован!", reply_markup=builder.as_markup()
         )
     else:
-        details = get_post_details(post)
+        details = get_post_details_text(post)
         builder = get_post_details_keyboard(post)
         await main_message.message.edit_text(
             text=details,
@@ -395,7 +395,7 @@ async def edit_post_channel(callback_query: types.CallbackQuery, state: FSMConte
             break
     await state.update_data(posts=posts)
     await state.update_data(post=post)
-    details = get_post_details(post)
+    details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
         text=details,

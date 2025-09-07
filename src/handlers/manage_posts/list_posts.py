@@ -19,7 +19,7 @@ from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
-    get_post_details,
+    get_post_details_text,
     get_post_details_keyboard,
     publish_post,
 )

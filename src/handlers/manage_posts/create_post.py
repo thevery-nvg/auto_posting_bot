@@ -1,32 +1,30 @@
-from aiogram import Router, F, types, Bot
-from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineKeyboardButton
-from sqlalchemy.ext.asyncio import AsyncSession
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.date import DateTrigger
 from datetime import datetime
 import pendulum
+from aiogram import Router, F, types, Bot
+from aiogram.fsm.context import FSMContext
+from aiogram.types import InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from src.handlers.mock import channels as mock_channels
-from src.handlers.mock import Post, PostStatus, posts_mock, posts_mock_dict
+from apscheduler.triggers.date import DateTrigger
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.crud import get_active_channels, add_post, get_channel_by_id
+from src.handlers.manage_posts.shedule import scheduler
+from src.handlers.mock import Post, PostStatus
 from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
-    get_post_details,
-    get_post_details_keyboard,
     publish_post,
 )
 
-from src.handlers.manage_posts.shedule import scheduler
-from src.core.crud import get_active_channels,add_post,get_channel_by_id
 router = Router(name="create_post")
 
+
 @router.callback_query(
-    F.data==Buttons.create_post_callback,
+    F.data == Buttons.create_post_callback,
     Admin.manage_posts,
 )
-async def create_post_stage_1(state: FSMContext, db_session: AsyncSession):
+async def create_post_stage_1(callback: CallbackQuery,state: FSMContext, db_session: AsyncSession):
     data = await state.get_data()
     # Получаем каналы
     channels = await get_active_channels(db_session)
@@ -120,12 +118,12 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
     )
 
 
-
-
 @router.callback_query(F.data.startswith("channel_"), Admin.manage_posts)
-async def create_post_stage_2(callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
+async def create_post_stage_2(
+    callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession
+):
     channel_id = int(callback_query.data.replace("channel_", ""))
-    channel = await get_channel_by_id(db_session,channel_id)
+    channel = await get_channel_by_id(db_session, channel_id)
     data = await state.get_data()
     main_message = data.get("main_message")
     await state.update_data(channel=channel)
@@ -208,7 +206,9 @@ async def add_media(message: types.Message, state: FSMContext):
 
 # Хендлер для установки времени
 @router.message(Admin.manage_posts_set_time)
-async def set_time(message: types.Message, state: FSMContext,db_session: AsyncSession):
+async def set_time(
+    message: types.Message, state: FSMContext, db_session: AsyncSession, bot: Bot
+):
     data = await state.get_data()
     main_message = data.get("main_message")
     try:
@@ -228,7 +228,7 @@ async def set_time(message: types.Message, state: FSMContext,db_session: AsyncSe
         return
 
     # Получаем данные из FSM
-    channel_id = data.get("channel_id")
+    channel = data.get("channel")
     text = data.get("text")
     media_type = data.get("media_type")
     media_file_id = data.get("media_file_id")
@@ -237,7 +237,7 @@ async def set_time(message: types.Message, state: FSMContext,db_session: AsyncSe
     # Сохраняем пост в базу
     post = Post(
         title=title,
-        channel_id=channel_id,
+        channel_id=channel.id,
         text=text,
         media_type=media_type,
         media_file_id=media_file_id,
@@ -245,21 +245,18 @@ async def set_time(message: types.Message, state: FSMContext,db_session: AsyncSe
         created_by=message.from_user.id,
         status=PostStatus.PENDING,
     )
-    await add_post(db_session,post)
+    await add_post(db_session, post)
 
-    # scheduler.add_job(
-    #     publish_post,
-    #     trigger=DateTrigger(run_date=publish_time),
-    #     args=[bot, post],
-    #     id=f"post_{post.id}",
-    # )
+    scheduler.add_job(
+        publish_post,
+        trigger=DateTrigger(run_date=publish_time),
+        args=[bot, post],
+        id=f"post_{post.id}",
+        replace_existing=True,
+    )
     builder = InlineKeyboardBuilder()
     builder.button(**goto_main_menu_btn)
     await main_message.message.edit_text(
         text=f"Пост запланирован на {publish_time.strftime('%Y-%m-%d %H:%M')}.",
         reply_markup=builder.as_markup(),
     )
-
-
-
-

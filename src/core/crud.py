@@ -13,14 +13,14 @@ async def get_all_channels(session: AsyncSession):
 
 async def get_active_channels(session: AsyncSession):
     result = await session.execute(
-        select(Channel).where(Channel.is_active is True)
+        select(Channel).where(Channel.is_active == True)
     )
     return result.scalars().all()
 
 
 async def get_inactive_channels(session: AsyncSession):
     result = await session.execute(
-        select(Channel).where(Channel.is_active is False)
+        select(Channel).where(Channel.is_active == False)
     )
     return result.scalars().all()
 
