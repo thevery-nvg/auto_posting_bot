@@ -15,6 +15,7 @@ from src.handlers.mock import PostStatus
 
 from loguru import logger
 
+
 class Buttons:
     # Main menu
     manage_channels_text = "Управление каналами"
@@ -63,7 +64,7 @@ class Buttons:
     skip_media_callback = "#skip_media#"
     list_posts_types_text = "Списки постов"
     list_posts_types_callback = "#list_posts_types#"
-    cancel_post_text= "Отменить пост"
+    cancel_post_text = "Отменить пост"
     cancel_post_callback = "#cancel_post#"
 
     pending_posts_text = "Ожидающие публикации"
@@ -72,10 +73,10 @@ class Buttons:
     published_posts_callback = "#published_posts#"
     cancelled_posts_text = "Отмененные посты"
     cancelled_posts_callback = "#cancelled_posts#"
-    publish_now_text= "Опубликовать сейчас"
+    publish_now_text = "Опубликовать сейчас"
     publish_now_callback = "#publish_now#"
-    yes_sure_callback= "#yes_publish_now#"
-    no_god_no_callback= "#no_publish_now#"
+    yes_sure_callback = "#yes_publish_now#"
+    no_god_no_callback = "#no_publish_now#"
 
     # Post menu
     edit_text = "Редактировать текст"
@@ -217,17 +218,75 @@ def get_channel_details_keyboard(channel):
     return builder
 
 
-def get_post_details(post):
+def get_post_details_text(post):
+    if not post:
+        return "❌ Информация о посте не найдена"
+
+    status_emoji = {
+        "pending": "⏳",
+        "scheduled": "📅",
+        "published": "✅",
+        "failed": "❌",
+        "draft": "📝",
+    }
+
+    status_text = {
+        "pending": "ОЖИДАЕТ",
+        "scheduled": "ЗАПЛАНИРОВАН",
+        "published": "ОПУБЛИКОВАН",
+        "failed": "ОШИБКА",
+        "draft": "ЧЕРНОВИК",
+    }
+
+    status = post.status.value if hasattr(post.status, "value") else post.status
+    status_display = f"{status_emoji.get(status, '❓')} <b>{status_text.get(status, status.upper())}</b>"
+
+    media_type_emoji = {
+        "photo": "🖼",
+        "video": "🎬",
+        "document": "📄",
+        "audio": "🎵",
+        "animation": "🎞",
+        None: "📝",
+    }
+
+    media_type_display = (
+        f"{media_type_emoji.get(post.media_type, '📎')} {post.media_type or 'Текст'}"
+    )
+
+    publish_time = (
+        post.publish_time.strftime("%d.%m.%Y в %H:%M")
+        if post.publish_time
+        else "⏰ Не указано"
+    )
+    created_at = (
+        post.created_at.strftime("%d.%m.%Y в %H:%M") if post.created_at else "—"
+    )
+
+    text_preview = (
+        post.text[:100] + "..."
+        if post.text and len(post.text) > 100
+        else post.text or "❌ Нет текста"
+    )
+    title_preview = (
+        post.title[:50] + "..."
+        if post.title and len(post.title) > 50
+        else post.title or "❌ Без заголовка"
+    )
+
     return (
-        f"📢 Пост ID:{post.id}:\n\n"
-        f"Заголовок: {post.title}\n\n"
-        f"Текст:{post.text}\n\n"
-        f"Медиа тип: {post.media_type}\n\n"
-        f"Медиа файл: {post.media_file_id}\n\n"
-        f"Создано пользователем: {post.created_by}\n\n"
-        f"Канал: {post.channel_id}\n\n"
-        f"Статус: {post.status}\n\n"
-        f"Время публикации: {post.publish_time.strftime('%Y-%m-%d %H:%M')}"
+        f"<b>📝 Информация о посте</b>\n\n"
+        f"<b>🆔 ID:</b> <code>{post.id}</code>\n"
+        f"<b>🏷 Заголовок:</b> <code>{title_preview}</code>\n\n"
+        f"<b>📄 Текст:</b>\n<code>{text_preview}</code>\n\n"
+        f"<b>📊 Детали:</b>\n"
+        f"  • <b>Тип контента:</b> {media_type_display}\n"
+        f"  • <b>Медиа файл:</b> <code>{post.media_file_id or '❌ Нет медиа'}</code>\n"
+        f"  • <b>Канал:</b> <code>{post.channel_id}</code>\n\n"
+        f"<b>👤 Автор:</b> <code>{post.created_by}</code>\n"
+        f"<b>📈 Статус:</b> {status_display}\n\n"
+        f"<b>⏰ Время публикации:</b> <code>{publish_time}</code>\n"
+        f"<b>📅 Создан:</b> <code>{created_at}</code>\n"
     )
 
 
@@ -244,18 +303,60 @@ def get_post_details_keyboard(post):
             "callback_data": Buttons.edit_remove_media_callback,
         }
     )
-    builder.button(text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback)
+    builder.button(
+        text=Buttons.edit_title_text, callback_data=Buttons.edit_title_callback
+    )
     builder.button(text=Buttons.edit_text, callback_data=Buttons.edit_callback)
-    builder.button(text=Buttons.edit_channel_text, callback_data=Buttons.edit_channel_callback)
-    builder.button(text=Buttons.edit_time_text, callback_data=Buttons.edit_time_callback)
+    builder.button(
+        text=Buttons.edit_channel_text, callback_data=Buttons.edit_channel_callback
+    )
+    builder.button(
+        text=Buttons.edit_time_text, callback_data=Buttons.edit_time_callback
+    )
     if post.status != PostStatus.CANCELLED:
-        builder.button(text=Buttons.cancel_post_text, callback_data=Buttons.cancel_post_callback)
+        builder.button(
+            text=Buttons.cancel_post_text, callback_data=Buttons.cancel_post_callback
+        )
     if post.status != PostStatus.PUBLISHED:
-        builder.button(text=Buttons.publish_now_text, callback_data=Buttons.publish_now_callback)
+        builder.button(
+            text=Buttons.publish_now_text, callback_data=Buttons.publish_now_callback
+        )
     builder.button(**media_btn)
     builder.button(**goto_main_menu_btn)
     builder.adjust(1)
     return builder
+
+
+# Дополнительная функция для краткого отображения
+def get_post_preview_text(post):
+    if not post:
+        return "❌ Пост не найден"
+
+    status_emoji = {
+        "pending": "⏳",
+        "scheduled": "📅",
+        "published": "✅",
+        "failed": "❌",
+        "draft": "📝",
+    }
+
+    status = post.status.value if hasattr(post.status, "value") else post.status
+    title_preview = (
+        post.title[:30] + "..."
+        if post.title and len(post.title) > 30
+        else post.title or "Без заголовка"
+    )
+
+    publish_time = (
+        post.publish_time.strftime("%d.%m %H:%M") if post.publish_time else "—"
+    )
+
+    return (
+        f"{status_emoji.get(status, '❓')} <b>Пост #{post.id}</b>\n"
+        f"<code>{title_preview}</code>\n"
+        f"📅 {publish_time} | 🏷 {status}\n"
+        f"📺 Канал: <code>{post.channel_id}</code>"
+    )
 
 
 async def publish_post(bot: Bot, post: Post):
