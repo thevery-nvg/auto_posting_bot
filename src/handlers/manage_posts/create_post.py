@@ -1,12 +1,7 @@
 from aiogram import Router, F, types, Bot
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-
-# from src.core.models import Channel, Post, PostStatus, UserRole, User
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 from datetime import datetime
@@ -24,20 +19,17 @@ from src.handlers.utils import (
 )
 
 from src.handlers.manage_posts.shedule import scheduler
-
+from src.core.crud import get_active_channels,add_post,get_channel_by_id
 router = Router(name="create_post")
 
 @router.callback_query(
     F.data==Buttons.create_post_callback,
     Admin.manage_posts,
 )
-async def create_post_stage_1(
-    callback_query: types.CallbackQuery, state: FSMContext, bot: Bot
-):
+async def create_post_stage_1(state: FSMContext, db_session: AsyncSession):
     data = await state.get_data()
-    # Получаем каналы, фильтруем активные
-    channels = mock_channels
-    channels = [x for x in channels if x.is_active]
+    # Получаем каналы
+    channels = await get_active_channels(db_session)
 
     main_message = data.get("main_message")
     if not channels:
@@ -131,17 +123,11 @@ async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(F.data.startswith("channel_"), Admin.manage_posts)
-async def create_post_stage_2(callback_query: types.CallbackQuery, state: FSMContext):
+async def create_post_stage_2(callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     channel_id = int(callback_query.data.replace("channel_", ""))
+    channel = await get_channel_by_id(db_session,channel_id)
     data = await state.get_data()
-    channels = data.get("channels")
     main_message = data.get("main_message")
-    await state.update_data(channel_id=channel_id)
-    channel = None
-    for c in channels:
-        if c.id == channel_id:
-            channel = c
-            break
     await state.update_data(channel=channel)
     await state.set_state(Admin.manage_posts_set_title)
     await main_message.message.edit_text(
@@ -152,7 +138,6 @@ async def create_post_stage_2(callback_query: types.CallbackQuery, state: FSMCon
 @router.message(Admin.manage_posts_set_title)
 async def create_post_stage_3(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    channels = data.get("channels")
     main_message = data.get("main_message")
     text = message.text
     await message.delete()
@@ -223,10 +208,9 @@ async def add_media(message: types.Message, state: FSMContext):
 
 # Хендлер для установки времени
 @router.message(Admin.manage_posts_set_time)
-async def set_time(message: types.Message, state: FSMContext, bot: Bot):
+async def set_time(message: types.Message, state: FSMContext,db_session: AsyncSession):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = posts_mock
     try:
         publish_time = pendulum.parse(message.text, strict=False).replace(tzinfo=None)
         await message.delete()
@@ -261,14 +245,14 @@ async def set_time(message: types.Message, state: FSMContext, bot: Bot):
         created_by=message.from_user.id,
         status=PostStatus.PENDING,
     )
-    posts.append(post)
-    await state.update_data(posts=posts)
-    scheduler.add_job(
-        publish_post,
-        trigger=DateTrigger(run_date=publish_time),
-        args=[bot, post],
-        id=f"post_{post.id}",
-    )
+    await add_post(db_session,post)
+
+    # scheduler.add_job(
+    #     publish_post,
+    #     trigger=DateTrigger(run_date=publish_time),
+    #     args=[bot, post],
+    #     id=f"post_{post.id}",
+    # )
     builder = InlineKeyboardBuilder()
     builder.button(**goto_main_menu_btn)
     await main_message.message.edit_text(
