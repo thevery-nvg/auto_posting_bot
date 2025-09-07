@@ -25,7 +25,7 @@ from src.handlers.utils import (
 )
 
 from src.handlers.manage_posts.shedule import scheduler
-
+from src.core.crud import get_pending_posts,get_published_posts,get_cancelled_posts
 router = Router(name="list_posts")
 
 
@@ -49,18 +49,18 @@ async def list_posts_types(callback_query: types.CallbackQuery, state: FSMContex
     | F.data.contains(Buttons.published_posts_callback)
     | F.data.contains(Buttons.cancelled_posts_callback),
                        Admin.posts_list)
-async def list_posts(callback_query: types.CallbackQuery, state: FSMContext, bot: Bot):
+async def list_posts(callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession):
     page_size = 5
     page = 0
     data = await state.get_data()
     main_message = data.get("main_message")
 
     if callback_query.data == Buttons.pending_posts_callback:
-        posts = [post for post in posts_mock if post.status == PostStatus.PENDING]
+        posts = await get_pending_posts(db_session)
     elif callback_query.data == Buttons.published_posts_callback:
-        posts = [post for post in posts_mock if post.status == PostStatus.PUBLISHED]
+        posts = await get_published_posts(db_session)
     else:
-        posts = [post for post in posts_mock if post.status == PostStatus.CANCELLED]
+        posts = await get_cancelled_posts(db_session)
 
     message_text = f"📢 Список постов({page=}):\n\n"
     builder = InlineKeyboardBuilder()
