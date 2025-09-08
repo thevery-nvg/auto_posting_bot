@@ -245,12 +245,12 @@ async def set_time(
         created_by=message.from_user.id,
         status=PostStatus.PENDING,
     )
-    await add_post(db_session, post)
+    post = await add_post(db_session, post)
 
     scheduler.add_job(
         publish_post,
         trigger=DateTrigger(run_date=publish_time),
-        args=[bot, post],
+        args=[post.id],
         id=f"post_{post.id}",
         replace_existing=True,
     )

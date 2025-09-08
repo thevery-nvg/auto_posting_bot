@@ -282,7 +282,7 @@ async def publish_now_stage_2(
     builder = InlineKeyboardBuilder()
     builder.button(**goto_main_menu_btn)
     if callback_query.data == Buttons.yes_sure_callback:
-        await publish_post(bot, post)
+        await publish_post(post.id)
         await main_message.message.edit_text(
             "Пост опубликован!", reply_markup=builder.as_markup()
         )

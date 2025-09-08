@@ -1,19 +1,17 @@
-import pandas as pd
-from aiogram import Router, F, types, Bot
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from datetime import datetime
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from io import StringIO
 from typing import Optional
 
-from src.core.models import User, UserRole, Channel, Stat, Log, Post
-from src.handlers.mock import PostStatus
-
+from aiogram import types
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
+from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.crud import update_post, get_post_by_id
+from src.core.models import PostStatus
+from src.core.models import User, UserRole, Log, Post
+from src.handlers.manage_posts.shedule import global_storage
 
 
 class Buttons:
@@ -263,6 +261,9 @@ def get_post_details_text(post):
         post.created_at.strftime("%d.%m.%Y в %H:%M") if post.created_at else "—"
     )
 
+    published_at = (
+        post.published_at.strftime("%d.%m.%Y в %H:%M") if post.published_at else "—"
+    )
     text_preview = (
         post.text[:100] + "..."
         if post.text and len(post.text) > 100
@@ -287,6 +288,7 @@ def get_post_details_text(post):
         f"<b>📈 Статус:</b> {status_display}\n\n"
         f"<b>⏰ Время публикации:</b> <code>{publish_time}</code>\n"
         f"<b>📅 Создан:</b> <code>{created_at}</code>\n"
+        f"<b>🔄 Опубликован:</b> <code>{published_at}</code>\n"
     )
 
 
@@ -359,37 +361,47 @@ def get_post_preview_text(post):
     )
 
 
-async def publish_post(bot: Bot, post: Post):
-    try:
-        if post.media_file_id and post.media_type:
-            if post.media_type == "photo":
+async def publish_post(post_id: int) -> None:
+    bot = global_storage["bot"]
+    db_manager = global_storage["db_manager"]
+    session_generator = db_manager.get_async_session()
+    async for session in session_generator:
+        db_session = session
+        post: Post = await get_post_by_id(db_session, post_id)
+        try:
+            if post.media_file_id and post.media_type:
+                if post.media_type == "photo":
+                    logger.info(f"Post ID:{post.id} is published")
+                    await bot.send_photo(
+                        chat_id=post.channel_id,
+                        photo=post.media_file_id,
+                        caption=post.text,
+                        parse_mode="Markdown",
+                    )
+                elif post.media_type == "video":
+                    logger.info(f"Post ID:{post.id} is published")
+                    await bot.send_video(
+                        chat_id=post.channel_id,
+                        video=post.media_file_id,
+                        caption=post.text,
+                        parse_mode="Markdown",
+                    )
+                elif post.media_type == "document":
+                    logger.info(f"Post ID:{post.id} is published")
+                    await bot.send_document(
+                        chat_id=post.channel_id,
+                        document=post.media_file_id,
+                        caption=post.text,
+                        parse_mode="Markdown",
+                    )
+            else:
                 logger.info(f"Post ID:{post.id} is published")
-                await bot.send_photo(
-                    chat_id=post.channel_id,
-                    photo=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown",
+                msg: types.Message = await bot.send_message(
+                    chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
                 )
-            elif post.media_type == "video":
-                logger.info(f"Post ID:{post.id} is published")
-                await bot.send_video(
-                    chat_id=post.channel_id,
-                    video=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown",
-                )
-            elif post.media_type == "document":
-                logger.info(f"Post ID:{post.id} is published")
-                await bot.send_document(
-                    chat_id=post.channel_id,
-                    document=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown",
-                )
-        else:
-            logger.info(f"Post ID:{post.id} is published")
-            await bot.send_message(
-                chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
-            )
-    except Exception as e:
-        print(e)
+                post.message_id = msg.message_id
+                post.published = func.now()
+                post.status = PostStatus.PUBLISHED
+                await update_post(db_session, post)
+        except Exception as e:
+            print(e)

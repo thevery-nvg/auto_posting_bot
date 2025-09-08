@@ -1,7 +1,7 @@
 from aiogram import BaseMiddleware
 from aiogram.types import Update
 from typing import Callable, Dict, Any, Awaitable
-
+from src.handlers.manage_posts.shedule import global_storage
 
 class DatabaseMiddleware(BaseMiddleware):
     async def __call__(
@@ -12,7 +12,7 @@ class DatabaseMiddleware(BaseMiddleware):
     ) -> Any:
 
         db_manager = data["dispatcher"].workflow_data["db_manager"]
-
+        global_storage['db_manager'] = db_manager
         session_generator = db_manager.get_async_session()
         async for session in session_generator:
             data["db_session"] = session

@@ -67,6 +67,7 @@ async def aiogram_on_shutdown_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await bot.session.close()
     logger.info("Bot stopping successful")
 
+from src.handlers.manage_posts.shedule import global_storage
 
 def main() -> None:
     setup_logging(log_level="DEBUG", json_format=False)
@@ -76,7 +77,7 @@ def main() -> None:
         session=smart_session,
         default=DefaultBotProperties(parse_mode="HTML"),
     )
-
+    global_storage["bot"] = bot
     storage = MemoryStorage()
     dp = Dispatcher(bot=bot, storage=storage)
     dp.startup.register(aiogram_on_startup_polling)

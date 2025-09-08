@@ -26,6 +26,7 @@ from core.models import Post, Channel, PostStatus
 #         ),]
 channels = [
         Channel(
+            id=-1002164486161,
             name="test1",
             is_active=True,
             moderation_enabled=True,

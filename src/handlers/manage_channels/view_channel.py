@@ -21,8 +21,6 @@ from src.handlers.utils import (
     get_channel_details_keyboard,
 )
 
-from src.handlers.mock import channels as mock_channels, Channel
-
 router = Router(name="view_channel")
 
 
