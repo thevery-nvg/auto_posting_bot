@@ -76,8 +76,10 @@ class Post(Base):
     media_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     media_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     publish_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    published: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    message_id: Mapped[int | None] = mapped_column(BigInteger,nullable=True)
     status: Mapped[PostStatus] = mapped_column(
-        Enum(PostStatus), nullable=False, default=PostStatus.PENDING
+        Enum(PostStatus,name="poststatus"), nullable=False, default=PostStatus.PENDING
     )
     created_by: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())

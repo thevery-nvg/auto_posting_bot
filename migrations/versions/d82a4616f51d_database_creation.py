@@ -71,7 +71,9 @@ def upgrade() -> None:
     sa.Column('media_type', sa.String(length=50), nullable=True),
     sa.Column('media_file_id', sa.String(length=255), nullable=True),
     sa.Column('publish_time', sa.DateTime(), nullable=False),
+    sa.Column('published', sa.DateTime(), nullable=True),
     sa.Column('status', sa.Enum('PENDING', 'PUBLISHED', 'CANCELLED', name='poststatus'), nullable=False),
+    sa.Column('message_id', sa.BigInteger(), nullable=True),
     sa.Column('created_by', sa.BigInteger(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
@@ -103,4 +105,5 @@ def downgrade() -> None:
     op.drop_table('users')
     op.drop_index(op.f('ix_channels_id'), table_name='channels')
     op.drop_table('channels')
+
     # ### end Alembic commands ###
