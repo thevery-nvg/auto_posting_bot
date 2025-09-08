@@ -262,7 +262,7 @@ def get_post_details_text(post):
     )
 
     published_at = (
-        post.published_at.strftime("%d.%m.%Y в %H:%M") if post.published_at else "—"
+        post.published.strftime("%d.%m.%Y в %H:%M") if post.published else "—"
     )
     text_preview = (
         post.text[:100] + "..."
@@ -400,7 +400,7 @@ async def publish_post(post_id: int) -> None:
                     chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
                 )
                 post.message_id = msg.message_id
-                post.published = func.now()
+                post.published = datetime.now()
                 post.status = PostStatus.PUBLISHED
                 await update_post(db_session, post)
         except Exception as e:
