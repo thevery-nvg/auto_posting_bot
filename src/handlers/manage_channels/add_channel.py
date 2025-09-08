@@ -36,7 +36,7 @@ async def add_channel_stage_2(message: types.Message, state: FSMContext):
     await state.set_state(Admin.add_channel_id)
     await message.delete()
     await main_message.message.edit_text(
-        "Введите ID канала:",
+        "Введите ID канала или перешлите сообщение из него:",
     )
 
 
@@ -44,13 +44,24 @@ async def add_channel_stage_2(message: types.Message, state: FSMContext):
 async def add_channel_stage_3(message: types.Message, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
-    try:
-        channel_id = int(message.text)
-        await message.delete()
-    except ValueError:
-        await message.delete()
-        await main_message.message.edit_text("❌Введите корректный ID канала:")
-        return
+    if message.forward_from_chat:
+        if message.forward_from_chat.type != "channel":
+            await message.delete()
+            await main_message.message.edit_text(
+                "❌Пересланное сообщение не является каналом"
+            )
+            return
+        else:
+            await message.delete()
+            channel_id = message.forward_from_chat.id
+    else:
+        try:
+            channel_id = int(message.text)
+            await message.delete()
+        except ValueError:
+            await message.delete()
+            await main_message.message.edit_text("❌Введите корректный ID канала:")
+            return
     await state.set_state(Admin.add_notification_id)
     await state.update_data(channel_id=channel_id)
     await main_message.message.edit_text(
