@@ -77,7 +77,7 @@ async def add_channel_stage_4(
     name = data.get("channel_name")
     channel_id = data.get("channel_id")
     new_channel = Channel(
-        id_=channel_id,
+        id=channel_id,
         name=name,
         is_active=True,
         moderation_enabled=True,
