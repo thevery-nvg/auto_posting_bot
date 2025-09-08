@@ -3,7 +3,7 @@ from aiogram.filters import Command
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.core.models import User, UserRole
+from src.core.models import User, UserRole, PostStatus
 from src.handlers.mock import channels, posts_mock
 
 router = Router(name="common")
@@ -28,14 +28,28 @@ async def cmd_start(message: types.Message, db_session: AsyncSession):
 @router.message(Command("write"))
 async def cmd_write(message: types.Message, db_session: AsyncSession):
     logger.info(f"Received /write command from [{message.from_user.id}]")
-    for post in posts_mock:
-        post.created_by=5528297066
-        db_session.add(post)
-
     for channel in channels:
         db_session.add(channel)
     await db_session.commit()
     logger.info(f"channels writed to db")
+    for post in posts_mock:
+        post.created_by=5528297066
+        db_session.add(post)
+    logger.info(f"posts writed to db")
+
+    await db_session.commit()
+
+
+from src.core.crud import get_pending_posts,update_post
+@router.message(Command("change_status"))
+async def change_status(message: types.Message, db_session: AsyncSession):
+    logger.info(f"Received /change_status command from [{message.from_user.id}]")
+    posts=await get_pending_posts(db_session)
+    for post in posts:
+        logger.info(f"post status={post.status}")
+        post.status=PostStatus.PUBLISHED
+        logger.info(f"post status changed ={post.status}")
+        await update_post(db_session,post)
 
 
 # Пример хендлера с явным управлением сессией
