@@ -22,6 +22,7 @@ async def cmd_start(message: types.Message, db_session: AsyncSession):
         )
         db_session.add(user)
         await db_session.commit()
+        await db_session.close()
     await message.answer(f"Welcome, {user.id=} {user.username=}!")
 
 

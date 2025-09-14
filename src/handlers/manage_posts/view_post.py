@@ -21,6 +21,7 @@ from src.handlers.utils import (
     get_post_details_text,
     get_post_details_keyboard,
     publish_post,
+    yes_no_keyboard,
 )
 
 router = Router(name="edit_post")
@@ -256,14 +257,9 @@ async def cancel_post(callback_query: types.CallbackQuery, state: FSMContext):
 async def publish_now_stage_1(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(text="Да", callback_data=Buttons.yes_sure_callback),
-        InlineKeyboardButton(text="Нет", callback_data=Buttons.no_god_no_callback),
-    )
     await main_message.message.edit_text(
         "Вы уверены, что хотите опубликовать пост сейчас?",
-        reply_markup=builder.as_markup(),
+        reply_markup=yes_no_keyboard(),
     )
 
 

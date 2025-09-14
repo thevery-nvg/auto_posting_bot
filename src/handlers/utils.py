@@ -3,6 +3,7 @@ from typing import Optional
 
 from aiogram import types
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
 from sqlalchemy import func
@@ -103,6 +104,19 @@ goto_main_menu_btn = {
     "callback_data": Buttons.goto_main_callback,
 }
 
+def go_to_main_menu_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.button(**goto_main_menu_btn)
+    return builder.as_markup()
+
+def yes_no_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="Да", callback_data=Buttons.yes_sure_callback),
+        InlineKeyboardButton(text="Нет", callback_data=Buttons.no_god_no_callback),
+    )
+    return builder.as_markup()
+
 
 class Admin(StatesGroup):
     main = State()
@@ -113,6 +127,7 @@ class Admin(StatesGroup):
     add_channel_name = State()
     add_channel_id = State()
     add_notification_id = State()
+    change_moderation=State()
 
     remove_channel = State()
 

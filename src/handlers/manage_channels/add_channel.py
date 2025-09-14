@@ -1,4 +1,3 @@
-from aiogram import Router, F, types
 from datetime import datetime
 
 from aiogram import Router, F, types
@@ -13,6 +12,8 @@ from src.handlers.utils import (
     goto_main_menu_btn,
     Admin,
     get_channel_details_text,
+    yes_no_keyboard,
+    go_to_main_menu_keyboard,
 )
 
 router = Router(name="add_channel")
@@ -70,9 +71,7 @@ async def add_channel_stage_3(message: types.Message, state: FSMContext):
 
 
 @router.message(Admin.add_notification_id)
-async def add_channel_stage_4(
-    message: types.Message, state: FSMContext, db_session: AsyncSession
-):
+async def add_channel_stage_4(message: types.Message, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
     try:
@@ -85,24 +84,38 @@ async def add_channel_stage_4(
         )
         return
     await state.update_data(notification_id=notification_id)
+    await state.set_state(Admin.change_moderation)
+    await main_message.message.edit_text(
+        text="Нужно ли модерировать канал?", reply_markup=yes_no_keyboard()
+    )
+
+
+@router.message(Admin.change_moderation)
+async def add_channel_stage_5(
+    callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession
+):
+    data = await state.get_data()
+    main_message = data.get("main_message")
     name = data.get("channel_name")
     channel_id = data.get("channel_id")
+    notification_id = data.get("notification_id")
+
+    if callback_query.data == Buttons.yes_sure_callback:
+        moderation_enabled = True
+    else:
+        moderation_enabled = False
+
     new_channel = Channel(
         id=channel_id,
         name=name,
         is_active=True,
-        moderation_enabled=True,
+        moderation_enabled=moderation_enabled,
         notification_chat_id=notification_id if notification_id else None,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
-    channels = data.get("channels")
-    channels.append(new_channel)
     await add_channel(db_session, new_channel)
-    builder = InlineKeyboardBuilder()
-    builder.button(**goto_main_menu_btn)
-    await state.update_data(channels=channels)
     details = get_channel_details_text(new_channel)
     await main_message.message.edit_text(
-        text=f"Канал успешно добавлен!\n\n{details}", reply_markup=builder.as_markup()
+        text=f"Канал успешно добавлен!\n\n{details}", reply_markup=go_to_main_menu_keyboard()
     )

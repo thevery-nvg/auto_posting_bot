@@ -39,7 +39,10 @@ async def get_channel_by_id(session: AsyncSession, channel_id: int):
 
 
 async def add_channel(session: AsyncSession, channel: Channel):
-    session.add(channel)
+    try:
+        session.add(channel)
+    except Exception as e:
+        raise ValueError("Channel already exists")
     await session.commit()
     await session.refresh(channel)
     await session.close()
