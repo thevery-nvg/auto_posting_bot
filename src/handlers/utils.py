@@ -6,12 +6,10 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
-from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.crud import update_post, get_post_by_id
-from src.core.models import PostStatus
-from src.core.models import User, UserRole, Log, Post
+from src.core.crud import update_post, get_post_by_id, get_channel_by_id
+from src.core.models import User, UserRole, Log, Post, PostStatus, Channel
 from src.handlers.manage_posts.shedule import global_storage
 
 
@@ -104,10 +102,12 @@ goto_main_menu_btn = {
     "callback_data": Buttons.goto_main_callback,
 }
 
+
 def go_to_main_menu_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(**goto_main_menu_btn)
     return builder.as_markup()
+
 
 def yes_no_keyboard():
     builder = InlineKeyboardBuilder()
@@ -127,7 +127,8 @@ class Admin(StatesGroup):
     add_channel_name = State()
     add_channel_id = State()
     add_notification_id = State()
-    change_moderation=State()
+    change_moderation = State()
+    end_add_channel = State()
 
     remove_channel = State()
 
@@ -383,40 +384,28 @@ async def publish_post(post_id: int) -> None:
     async for session in session_generator:
         db_session = session
         post: Post = await get_post_by_id(db_session, post_id)
-        try:
-            if post.media_file_id and post.media_type:
-                if post.media_type == "photo":
-                    logger.info(f"Post ID:{post.id} is published")
-                    await bot.send_photo(
-                        chat_id=post.channel_id,
-                        photo=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-                elif post.media_type == "video":
-                    logger.info(f"Post ID:{post.id} is published")
-                    await bot.send_video(
-                        chat_id=post.channel_id,
-                        video=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-                elif post.media_type == "document":
-                    logger.info(f"Post ID:{post.id} is published")
-                    await bot.send_document(
-                        chat_id=post.channel_id,
-                        document=post.media_file_id,
-                        caption=post.text,
-                        parse_mode="Markdown",
-                    )
-            else:
-                logger.info(f"Post ID:{post.id} is published")
-                msg: types.Message = await bot.send_message(
-                    chat_id=post.channel_id, text=post.text, parse_mode="Markdown"
-                )
-                post.message_id = msg.message_id
-                post.published = datetime.now()
-                post.status = PostStatus.PUBLISHED
-                await update_post(db_session, post)
-        except Exception as e:
-            print(e)
+        channel: Channel = await get_channel_by_id(db_session, post.channel_id)
+        data = {
+            k: v
+            for k, v in {
+                "chat_id": post.channel_id,
+                "photo": post.media_file_id,
+                "video": post.media_file_id,
+                "document": post.media_file_id,
+                "caption": post.text,
+                "parse_mode": "Markdown",
+            }.items()
+            if v
+        }
+        msg: types.Message = await bot.send_document(**data)
+        logger.info(f"Post ID:{post.id} is published in channel {channel.name}[{post.channel_id}]")
+        if channel.notification_chat_id:
+            await bot.send_message(
+                chat_id=channel.notification_chat_id,
+                text=f"Пост <b>{post.title}</b> опубликован в канале <b>{channel.name}[{post.channel_id}]</b>",
+                parse_mode="HTML",
+            )
+        post.message_id = msg.message_id
+        post.published = datetime.now()
+        post.status = PostStatus.PUBLISHED
+        await update_post(db_session, post)
