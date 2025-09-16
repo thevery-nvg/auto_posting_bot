@@ -389,9 +389,9 @@ async def publish_post(post_id: int) -> None:
             k: v
             for k, v in {
                 "chat_id": post.channel_id,
-                "photo": post.media_file_id,
-                "video": post.media_file_id,
-                "document": post.media_file_id,
+                "photo": post.media_file_id if post.media_type == "photo" else None,
+                "video": post.media_file_id if post.media_type == "video" else None,
+                "document": post.media_file_id if post.media_type == "document" else None,
                 "caption": post.text,
                 "parse_mode": "Markdown",
             }.items()
