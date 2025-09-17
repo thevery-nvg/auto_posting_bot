@@ -139,6 +139,7 @@ class Admin(StatesGroup):
     manage_posts_set_time = State()
     manage_posts_switch_page = State()
     manage_posts_details = State()
+    change_comment_chat_id= State()
 
     posts_list = State()
     edit_post_text = State()
@@ -222,6 +223,10 @@ def get_channel_details_keyboard(channel):
             else "Включить модерацию"
         ),
         callback_data=f"switch_moderation_status_{channel.id}",
+    )
+    builder.button(
+        text="Изменить чат комментариев",
+        callback_data=f"change_comment_chat_id_{channel.id}",
     )
     builder.button(
         text="Изменить чат уведомлений",
