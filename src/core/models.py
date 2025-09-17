@@ -1,3 +1,5 @@
+import enum
+
 from sqlalchemy import (
     Integer,
     BigInteger,
@@ -12,8 +14,6 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
-
-import enum
 
 from src.config import settings
 
@@ -57,13 +57,14 @@ class Channel(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     moderation_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    comment_chat_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     notification_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
 
-    posts = relationship("Post", back_populates="channel")
-    filters = relationship("Filter", back_populates="channel")
-    stats = relationship("Stat", back_populates="channel")
+    posts = relationship("Post", back_populates="channels")
+    filters = relationship("Filter", back_populates="channels")
+    stats = relationship("Stat", back_populates="channels")
 
 
 class Post(Base):
@@ -88,7 +89,7 @@ class Post(Base):
     # Relationships
     creator: Mapped["User"] = relationship("User", back_populates="posts")
     channel: Mapped["Channel"] = relationship("Channel", back_populates="posts")
-    stats: Mapped[list["Stat"]] = relationship("Stat", back_populates="post")
+    stats: Mapped[list["Stat"]] = relationship("Stat", back_populates="posts")
 
 
 class Filter(Base):
