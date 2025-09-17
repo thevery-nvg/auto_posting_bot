@@ -41,10 +41,6 @@ async def cmd_admin(message: types.Message, state: FSMContext):
         text=Buttons.manage_posts_text,
         callback_data=Buttons.manage_posts_callback,
     )
-    builder.button(
-        text=Buttons.manage_moderator_text,
-        callback_data=Buttons.manage_moderator_callback,
-    )
     builder.button(text=Buttons.stats_text, callback_data=Buttons.stats_callback)
     builder.button(
         text=Buttons.logs_text, callback_data=Buttons.logs_callback
