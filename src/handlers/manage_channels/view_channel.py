@@ -12,7 +12,7 @@ from io import StringIO
 from typing import Optional
 
 from core.crud import update_channel
-from src.core.models import User, UserRole, Stat, Log
+from src.core.models import User, UserRole, Stat, Log, Channel
 from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
@@ -120,6 +120,55 @@ async def switch_moderation_status(
     details = get_channel_details_text(channel)
     builder = get_channel_details_keyboard(channel)
     await main_message.message.edit_text(text=details, reply_markup=builder.as_markup())
+
+
+@router.callback_query(F.data.startswith("change_comment_chat_id_"), Admin.manage_channels)
+async def change_comment_chat_id_stage_1(callback_query: types.CallbackQuery, state: FSMContext, bot: Bot,db_session:AsyncSession):
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    await state.update_data(moderation_enabled=True)
+    await state.set_state(Admin.change_comment_chat_id)
+    await main_message.message.edit_text(
+        text="Введите ID канала с комментариями или перешлите сообщение из него:",
+    )
+
+
+@router.message(Admin.change_comment_chat_id)
+async def change_comment_chat_id_stage_2(message: types.Message, state: FSMContext,db_session:AsyncSession,bot: Bot):
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    if message.forward_from_chat:
+        if message.forward_from_chat.type != "channel":
+            await message.delete()
+            await main_message.message.edit_text(
+                "❌Пересланное сообщение не является каналом"
+            )
+            return
+        else:
+            await message.delete()
+            channel_id = message.forward_from_chat.id
+    else:
+        try:
+            channel_id = int(message.text)
+            await message.delete()
+        except ValueError:
+            await message.delete()
+            await main_message.message.edit_text("❌Введите корректный ID канала:")
+            return
+    channels = data.get("channels")
+    channel :Channel|None= None
+    for i, c in enumerate(channels):
+        if c.id == channel_id:
+            channels[i].comment_chat_id = channel_id
+            channels[i].updated_at = datetime.now()
+            channel = channels[i]
+            break
+    channel:Channel = await update_channel(db_session,channel)
+    details = get_channel_details_text(channel)
+    builder = get_channel_details_keyboard(channel)
+    await state.set_state(Admin.manage_channels)
+    await main_message.message.edit_text(text=details, reply_markup=builder.as_markup())
+
 
 
 @router.callback_query(
