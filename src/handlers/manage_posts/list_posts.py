@@ -1,31 +1,17 @@
 from aiogram import Router, F, types, Bot
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-import copy
-
-# from src.core.models import Channel, Post, PostStatus, UserRole, User
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.date import DateTrigger
-from datetime import datetime
-import pendulum
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from src.handlers.mock import channels as mock_channels
-from src.handlers.mock import Post, PostStatus, posts_mock, posts_mock_dict
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.crud import get_pending_posts, get_published_posts, get_cancelled_posts
 from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
-    get_post_details_text,
-    get_post_details_keyboard,
-    publish_post,
+
 )
 
-from src.handlers.manage_posts.shedule import scheduler
-from src.core.crud import get_pending_posts,get_published_posts,get_cancelled_posts
 router = Router(name="list_posts")
 
 
