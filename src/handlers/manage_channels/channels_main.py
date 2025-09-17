@@ -21,9 +21,7 @@ router = Router(name="manage_channels")
 async def manage_channels(
     callback_query: types.CallbackQuery, state: FSMContext, db_session: AsyncSession
 ):
-    # ТУТ ПОЛУЧЕНИЕ КАНАЛОВ
-    channels = await get_all_channels(db_session)
-    await state.update_data(channels=channels)
+
     builder = InlineKeyboardBuilder()
     builder.button(
         text=Buttons.add_channel_text, callback_data=Buttons.add_channel_callback
