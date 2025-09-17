@@ -1,26 +1,15 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from sqlalchemy import func
-from aiogram import Router, F, types, Bot
-from aiogram.filters import Command, StateFilter
+from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup, any_state
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from datetime import datetime
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from io import StringIO
-from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.models import User, UserRole, Stat, Log
+from src.core.crud import get_active_channels, get_all_channels, get_inactive_channels
 from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
     Admin,
-    get_channel_details_text,
-    get_channel_details_keyboard,
 )
-from src.handlers.mock import channels as mock_channels, Channel
-from src.core.crud import get_active_channels, get_all_channels,get_inactive_channels
 
 router = Router(name="list_channels")
 
