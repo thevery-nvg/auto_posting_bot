@@ -1,19 +1,15 @@
-from aiogram import Router, F, types, Bot
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import InlineKeyboardButton
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-
 # from src.core.models import Channel, Post, PostStatus, UserRole, User
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.date import DateTrigger
 from datetime import datetime
+
 import pendulum
+from aiogram import Router, F, types, Bot
+from aiogram.fsm.context import FSMContext
+from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from src.handlers.mock import channels as mock_channels
-from src.handlers.mock import Post, PostStatus, posts_mock, posts_mock_dict
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.crud import get_post_by_id, update_post, get_active_channels
+from core.models import PostStatus
 from src.handlers.utils import (
     Buttons,
     goto_main_menu_btn,
@@ -28,17 +24,11 @@ router = Router(name="edit_post")
 
 
 @router.callback_query(F.data.startswith("post_"), Admin.posts_list)
-async def view_post(callback_query: types.CallbackQuery, state: FSMContext):
+async def view_post(callback_query: types.CallbackQuery, state: FSMContext,db_session: AsyncSession):
     post_id = int(callback_query.data.replace("post_", ""))
-    await state.update_data(post_id=post_id)
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
-    post = None
-    for p in posts:
-        if p.id == post_id:
-            post = p
-            break
+    post=await get_post_by_id(db_session,post_id)
     await state.set_state(Admin.manage_posts_details)
     await state.update_data(post=post)
     details = get_post_details_text(post)
@@ -64,18 +54,18 @@ async def edit_post_title_stage_1(
 
 
 @router.message(Admin.edit_post_title)
-async def edit_post_title_stage_2(message: types.Message, state: FSMContext):
+async def edit_post_title_stage_2(message: types.Message, state: FSMContext,db_session: AsyncSession):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
     post = data.get("post")
-    text = message.text
+
+    title = message.text
     await message.delete()
-    for i, p in enumerate(posts):
-        if p.id == post.id:
-            posts[i].title = text
-            post.title = text
-            break
+
+    post.title = title
+    post=await update_post(db_session,post)
+    await state.update_data(post=post)
+
     details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await state.set_state(Admin.posts_list)
@@ -98,18 +88,16 @@ async def edit_post_text_stage_1(
 
 
 @router.message(Admin.edit_post_text)
-async def edit_post_text_stage_2(message: types.Message, state: FSMContext):
+async def edit_post_text_stage_2(message: types.Message, state: FSMContext,db_session: AsyncSession):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
     post = data.get("post")
     text = message.text
     await message.delete()
-    for i, p in enumerate(posts):
-        if p.id == post.id:
-            posts[i].text = text
-            post.text = text
-            break
+
+    post.text = text
+    post=await update_post(db_session,post)
+    await state.update_data(post=post)
     details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await state.set_state(Admin.posts_list)
@@ -132,10 +120,9 @@ async def edit_post_time_stage_1(
 
 
 @router.message(Admin.edit_post_time)
-async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
+async def edit_post_time_stage_2(message: types.Message, state: FSMContext,db_session: AsyncSession):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
     post = data.get("post")
     try:
         publish_time = pendulum.parse(message.text, strict=False).replace(tzinfo=None)
@@ -151,14 +138,11 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
             "❌Время публикации должно быть в будущем."
         )
         return
-    for i, p in enumerate(posts):
-        if p.id == post.id:
-            posts[i].publish_time = publish_time
-            post.publish_time = publish_time
-            break
+    post.publish_time = publish_time
+    post=await update_post(db_session,post)
+    await state.update_data(post=post)
     details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
-    await state.update_data(posts=posts)
     await state.set_state(Admin.posts_list)
     await main_message.message.edit_text(
         text=details,
@@ -167,19 +151,16 @@ async def edit_post_time_stage_2(message: types.Message, state: FSMContext):
 
 
 @router.callback_query(F.data == Buttons.edit_remove_media_callback, Admin.posts_list)
-async def edit_remove_media(callback_query: types.CallbackQuery, state: FSMContext):
+async def edit_remove_media(callback_query: types.CallbackQuery, state: FSMContext,db_session: AsyncSession):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
     post = data.get("post")
-    for i, p in enumerate(posts):
-        if p.id == post.id:
-            posts[i].media_file_id = None
-            posts[i].media_type = None
-            break
+    post.media_file_id = None
+    post.media_type = None
+    post=await update_post(db_session,post)
+    await state.update_data(post=post)
     details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
-    await state.update_data(posts=posts)
     await main_message.message.edit_text(
         text=details,
         reply_markup=builder.as_markup(),
@@ -197,10 +178,9 @@ async def edit_add_media_stage_1(
 
 
 @router.message(Admin.edit_post_media, F.photo | F.video | F.document)
-async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
+async def edit_add_media_stage_2(message: types.Message, state: FSMContext,db_session: AsyncSession):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
     post = data.get("post")
     media_type = None
     media_file_id = None
@@ -215,14 +195,10 @@ async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
         media_type = "document"
         media_file_id = message.document.file_id
 
-    for i, p in enumerate(posts):
-        if p.id == post.id:
-            posts[i].media_file_id = media_file_id
-            posts[i].media_type = media_type
-            post.media_file_id = media_file_id
-            post.media_type = media_type
-            break
-    await state.update_data(posts=posts)
+    post.media_file_id = media_file_id
+    post.media_type = media_type
+    post=await update_post(db_session,post)
+    await state.update_data(post=post)
     await message.delete()
     await state.set_state(Admin.posts_list)
     details = get_post_details_text(post)
@@ -234,17 +210,13 @@ async def edit_add_media_stage_2(message: types.Message, state: FSMContext):
 
 
 @router.callback_query(F.data == Buttons.cancel_post_callback, Admin.posts_list)
-async def cancel_post(callback_query: types.CallbackQuery, state: FSMContext):
+async def cancel_post(callback_query: types.CallbackQuery, state: FSMContext,db_session: AsyncSession):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
     post = data.get("post")
-    for i, p in enumerate(posts):
-        if p.id == post.id:
-            posts[i].status = PostStatus.CANCELLED
-            post.status = PostStatus.CANCELLED
-            break
-    await state.update_data(posts=posts, post=post)
+    post.status = PostStatus.CANCELLED
+    post=await update_post(db_session,post)
+    await state.update_data(post=post)
     details = get_post_details_text(post)
     builder = get_post_details_keyboard(post)
     await main_message.message.edit_text(
@@ -273,7 +245,6 @@ async def publish_now_stage_2(
 ):
     data = await state.get_data()
     main_message = data.get("main_message")
-    posts = data.get("posts")
     post = data.get("post")
     builder = InlineKeyboardBuilder()
     builder.button(**goto_main_menu_btn)
@@ -295,14 +266,16 @@ async def publish_now_stage_2(
     F.data.contains(Buttons.edit_channel_callback),
     Admin.posts_list,
 )
-async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
+
+
+#ДАЛЬШЕ КАК БУДТО ХУЙНЯ КАКАЯ-ТО
+async def list_channels44(callback_query: types.CallbackQuery, state: FSMContext,db_session: AsyncSession):
     page_size = 5
     page = 0
 
     data = await state.get_data()
     main_message = data.get("main_message")
-    channels = data.get("channels")
-    channels = [x for x in channels if x.is_active]
+    channels = await get_active_channels(db_session)
 
     builder = InlineKeyboardBuilder()
     for channel in channels[:page_size]:
@@ -330,7 +303,7 @@ async def list_channels(callback_query: types.CallbackQuery, state: FSMContext):
     F.data.contains(Buttons.back_callback) | F.data.contains(Buttons.forward_callback),
     Admin.manage_channels,
 )
-async def change_page(callback_query: types.CallbackQuery, state: FSMContext):
+async def change_page44(callback_query: types.CallbackQuery, state: FSMContext):
     page_size = 5
     data = await state.get_data()
     main_message = data.get("main_message")
