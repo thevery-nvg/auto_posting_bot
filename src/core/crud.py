@@ -121,6 +121,7 @@ async def add_post(session: AsyncSession, post: Post):
 
 
 async def update_post(session: AsyncSession, post: Post):
+    post.updated_at = datetime.now()
     await session.merge(post)
     await session.commit()
     await session.close()
