@@ -15,6 +15,7 @@ from src.handlers.utils import (
     goto_main_menu_btn,
     Admin,
     publish_post,
+    go_to_main_menu_keyboard,
 )
 
 router = Router(name="create_post")
@@ -33,9 +34,7 @@ async def create_post_stage_1(callback: CallbackQuery,state: FSMContext, db_sess
     if not channels:
         await main_message.message.edit_text(
             text="❌ Каналы не найдены.",
-            reply_markup=InlineKeyboardBuilder()
-            .button(**goto_main_menu_btn)
-            .as_markup(),
+            reply_markup=go_to_main_menu_keyboard()
         )
         return
     # Создаем клавиатуру с каналами`
@@ -137,9 +136,9 @@ async def create_post_stage_2(
 async def create_post_stage_3(message: types.Message, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
-    text = message.text
+    title = message.text
     await message.delete()
-    await state.update_data(title=text)
+    await state.update_data(title=title)
     await state.set_state(Admin.manage_posts_enter_text)
     await main_message.message.edit_text(
         text=f"📢 Введите текст для публикации:",
@@ -254,9 +253,7 @@ async def set_time(
         id=f"post_{post.id}",
         replace_existing=True,
     )
-    builder = InlineKeyboardBuilder()
-    builder.button(**goto_main_menu_btn)
     await main_message.message.edit_text(
         text=f"Пост запланирован на {publish_time.strftime('%Y-%m-%d %H:%M')}.",
-        reply_markup=builder.as_markup(),
+        reply_markup=go_to_main_menu_keyboard(),
     )
