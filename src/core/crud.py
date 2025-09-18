@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -50,6 +52,7 @@ async def add_channel(session: AsyncSession, channel: Channel):
 
 
 async def update_channel(session: AsyncSession, channel: Channel):
+    channel.updated_at = datetime.now()
     await session.merge(channel)
     await session.commit()
     await session.close()
