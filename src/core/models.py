@@ -35,20 +35,23 @@ class PostStatus(enum.Enum):
     CANCELLED = "cancelled"
 
 
-
-
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.USER)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole), nullable=False, default=UserRole.USER
+    )
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     logs = relationship("Log", back_populates="user")
     posts = relationship("Post", back_populates="creator")
+
 
 class Channel(Base):
     __tablename__ = "channels"
@@ -57,63 +60,62 @@ class Channel(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     moderation_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    comment_chat_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
+    comment_chat_id: Mapped[int] = mapped_column(BigInteger, index=True)
     notification_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
-    posts = relationship("Post", back_populates="channels")
-    filters = relationship("Filter", back_populates="channels")
-    stats = relationship("Stat", back_populates="channels")
+    posts = relationship("Post", back_populates="channel")
+    stats = relationship("Stat", back_populates="channel")
 
 
 class Post(Base):
     __tablename__ = "posts"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    channel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    channel_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("channels.id"), nullable=False
+    )
     title: Mapped[str] = mapped_column(Text, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     media_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     media_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     publish_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
-    published: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
-    message_id: Mapped[int | None] = mapped_column(BigInteger,nullable=True)
+    published: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
+    message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     status: Mapped[PostStatus] = mapped_column(
-        Enum(PostStatus,name="poststatus"), nullable=False, default=PostStatus.PENDING
+        Enum(PostStatus, name="poststatus"),
+        nullable=False,
+        default=PostStatus.PENDING,
     )
-    created_by: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    created_by: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id"), nullable=False
+    )
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     # Relationships
     creator: Mapped["User"] = relationship("User", back_populates="posts")
     channel: Mapped["Channel"] = relationship("Channel", back_populates="posts")
-    stats: Mapped[list["Stat"]] = relationship("Stat", back_populates="posts")
-
-
-class Filter(Base):
-    __tablename__ = "filters"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    channel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=False)
-    keyword: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    regex: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(DateTime, onupdate=func.now())
-
-    channel = relationship("Channel", back_populates="filters")
+    stats: Mapped[list["Stat"]] = relationship("Stat", back_populates="post")
 
 
 class Log(Base):
     __tablename__ = "logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id"), nullable=False
+    )
     action: Mapped[str] = mapped_column(String(255), nullable=False)
     details: Mapped[str | None] = mapped_column(Text, nullable=True)
-    channel_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=True)
+    channel_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("channels.id"), nullable=True
+    )
     timestamp: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="logs")
@@ -124,8 +126,12 @@ class Stat(Base):
     __tablename__ = "stats"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    channel_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("channels.id"), nullable=False)
-    post_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("posts.id"), nullable=True)
+    channel_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("channels.id"), nullable=False
+    )
+    post_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("posts.id"), nullable=True
+    )
     views: Mapped[int] = mapped_column(Integer, default=0)
     comments: Mapped[int] = mapped_column(Integer, default=0)
     timestamp: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())

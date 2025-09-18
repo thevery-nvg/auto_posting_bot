@@ -199,6 +199,7 @@ def get_channel_details_text(channel):
         f"  • <b>Статус:</b> {'<b><u>✅ АКТИВЕН</u></b>' if channel.is_active else '❌ неактивен'}\n"
         f"  • <b>Модерация:</b> {'<b><u>✅ ВКЛЮЧЕНА</u></b>' if channel.moderation_enabled else '❌ отключена'}\n"
         f"  • <b>Уведомления:</b> <code>{channel.notification_chat_id or '❌ не настроены'}</code>\n\n"
+        f"  • <b>Комментарии:</b> <code>{channel.comment_chat_id or '❌ не настроены'}</code>\n\n"
         f"<b>📅 Даты:</b>\n"
         f"  • <b>Создан:</b> <code>{channel.created_at}</code>\n"
         f"  • <b>Обновлен:</b> <code>{channel.updated_at}</code>\n"

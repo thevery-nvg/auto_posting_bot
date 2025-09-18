@@ -34,7 +34,7 @@ async def get_channel_by_id(session: AsyncSession, channel_id: int):
     result = await session.execute(
         select(Channel)
         .where(Channel.id == channel_id)
-        .options(selectinload(Channel.posts), selectinload(Channel.filters))
+        .options(selectinload(Channel.posts), )
     )
     await session.close()
     return result.scalar_one_or_none()
@@ -52,7 +52,6 @@ async def add_channel(session: AsyncSession, channel: Channel):
 
 
 async def update_channel(session: AsyncSession, channel: Channel):
-    channel.updated_at = datetime.now()
     await session.merge(channel)
     await session.commit()
     await session.close()
@@ -121,7 +120,6 @@ async def add_post(session: AsyncSession, post: Post):
 
 
 async def update_post(session: AsyncSession, post: Post):
-    post.updated_at = datetime.now()
     await session.merge(post)
     await session.commit()
     await session.close()

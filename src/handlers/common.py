@@ -30,6 +30,7 @@ async def cmd_start(message: types.Message, db_session: AsyncSession):
 async def cmd_write(message: types.Message, db_session: AsyncSession):
     logger.info(f"Received /write command from [{message.from_user.id}]")
     for channel in channels:
+        channel.comment_chat_id=-1002164486161
         db_session.add(channel)
     await db_session.commit()
     logger.info(f"channels writed to db")
