@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.models import Channel, Post, PostStatus
+from src.core.models import Channel, Post, PostStatus, User
 
 
 # Channel CRUD operations
@@ -130,3 +130,23 @@ async def delete_post(session: AsyncSession, post: Post):
     await session.delete(post)
     await session.commit()
     await session.close()
+
+
+# TODO:пока набросок,нужно доработать и протестить
+
+async def get_user_by_id(session: AsyncSession, user_id: int):
+    result = await session.execute(
+        select(User)
+        .where(User.id == user_id)
+         )
+    await session.close()
+    return result.scalar_one_or_none()
+
+async def get_all_posts_from_channel(session: AsyncSession, channel_id: int):
+    channel = await get_channel_by_id(session, channel_id)
+    return channel.posts
+
+async def get_all_posts_from_user(session: AsyncSession, user_id: int):
+    user = await get_user_by_id(session, user_id)
+    return  user.posts
+
