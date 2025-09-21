@@ -86,7 +86,7 @@ class Buttons:
     edit_add_media_callback = "#add_media#"
     edit_remove_media_text = "Удалить медиа"
     edit_remove_media_callback = "#remove_media#"
-    edit_channel_text = "Изменить канал"
+    edit_channel_text = "Изменить канал публикации"
     edit_channel_callback = "#edit_channel#"
 
     forward_text = "Вперед"
@@ -108,6 +108,21 @@ def go_to_main_menu_keyboard():
     builder.button(**goto_main_menu_btn)
     return builder.as_markup()
 
+
+def main_menu_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=Buttons.manage_channels_text,
+        callback_data=Buttons.manage_channels_callback,
+    )
+    builder.button(
+        text=Buttons.manage_posts_text,
+        callback_data=Buttons.manage_posts_callback,
+    )
+    builder.button(text=Buttons.stats_text, callback_data=Buttons.stats_callback)
+    builder.button(text=Buttons.logs_text, callback_data=Buttons.logs_callback)
+    builder.adjust(1)
+    return builder.as_markup()
 
 def yes_no_keyboard():
     builder = InlineKeyboardBuilder()
@@ -146,6 +161,8 @@ class Admin(StatesGroup):
     edit_post_time = State()
     edit_post_media = State()
     edit_post_title = State()
+    edit_post_channel= State()
+    publish_now=State()
 
     remove_post = State()
 
@@ -305,8 +322,8 @@ def get_post_details_text(post):
         f"<b>📊 Детали:</b>\n"
         f"  • <b>Тип контента:</b> {media_type_display}\n"
         f"  • <b>Медиа файл:</b> <code>{post.media_file_id or '❌ Нет медиа'}</code>\n"
-        f"  • <b>Канал:</b> <code>{post.channel_id}</code>\n\n"
-        f"<b>👤 Автор:</b> <code>{post.created_by}</code>\n"
+        f"  • <b>Канал:</b> <code>{post.channel.name}</code>\n\n"
+        f"<b>👤 Автор:</b> <code>{post.creator.username}</code>\n"
         f"<b>📈 Статус:</b> {status_display}\n\n"
         f"<b>⏰ Время публикации:</b> <code>{publish_time}</code>\n"
         f"<b>📅 Создан:</b> <code>{created_at}</code>\n"
@@ -391,19 +408,31 @@ async def publish_post(post_id: int) -> None:
         db_session = session
         post: Post = await get_post_by_id(db_session, post_id)
         channel: Channel = await get_channel_by_id(db_session, post.channel_id)
-        data = {
-            k: v
-            for k, v in {
-                "chat_id": post.channel_id,
-                "photo": post.media_file_id if post.media_type == "photo" else None,
-                "video": post.media_file_id if post.media_type == "video" else None,
-                "document": post.media_file_id if post.media_type == "document" else None,
-                "caption": post.text,
-                "parse_mode": "Markdown",
-            }.items()
-            if v
-        }
-        msg: types.Message = await bot.send_document(**data)
+        if post.media_type:
+            if post.media_type=="photo":
+                msg: types.Message = await bot.send_photo(
+                    channel_id=post.channel_id,
+                    photo=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown")
+            elif post.media_type=="video":
+                msg: types.Message = await bot.send_video(
+                    channel_id=post.channel_id,
+                    photo=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown",)
+            else:
+                msg: types.Message = await bot.send_document(
+                    chat_id=post.channel_id,
+                    document=post.media_file_id,
+                    caption=post.text,
+                    parse_mode="Markdown",)
+        else:
+            msg: types.Message = await bot.send_message(
+                chat_id=post.channel_id,
+                text=post.text,
+                parse_mode="Markdown",)
+
         logger.info(f"Post ID:{post.id} is published in channel {channel.name}[{post.channel_id}]")
         if channel.notification_chat_id:
             await bot.send_message(
