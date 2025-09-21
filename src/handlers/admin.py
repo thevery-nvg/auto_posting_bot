@@ -13,7 +13,8 @@ from io import StringIO
 from typing import Optional
 
 from src.core.models import User, UserRole, Stat, Log
-from src.handlers.utils import is_user_admin, log_action, check_admin_access,Buttons,goto_main_menu_btn,Admin
+from src.handlers.utils import is_user_admin, log_action, check_admin_access,Buttons,goto_main_menu_btn,Admin, \
+    main_menu_keyboard
 from src.handlers.mock import channels as mock_channels
 
 router = Router(name="admin")
@@ -22,35 +23,22 @@ router = Router(name="admin")
 @router.callback_query(F.data == Buttons.goto_main_callback, StateFilter(any_state))
 async def goto_main(callback_query: types.CallbackQuery, state: FSMContext):
     data=await state.get_data()
-    main_message=data.get("main_message")
-    await state.clear()
-    await state.update_data(main_message=main_message)
+    main_message:types.CallbackQuery=data.get("main_message")
+    if main_message:
+        await main_message.message.delete()
     await cmd_admin(callback_query.message, state)
 
 
 @router.message(Command("admin"))
 async def cmd_admin(message: types.Message, state: FSMContext):
+    await state.clear()
     data=await state.get_data()
     main_message=data.get("main_message")
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text=Buttons.manage_channels_text,
-        callback_data=Buttons.manage_channels_callback,
-    )
-    builder.button(
-        text=Buttons.manage_posts_text,
-        callback_data=Buttons.manage_posts_callback,
-    )
-    builder.button(text=Buttons.stats_text, callback_data=Buttons.stats_callback)
-    builder.button(
-        text=Buttons.logs_text, callback_data=Buttons.logs_callback
-    )
-    builder.adjust(1)
     await state.set_state(Admin.main)
     if not main_message:
-        await message.answer("Админ-панель:", reply_markup=builder.as_markup())
+        await message.answer("Админ-панель:", reply_markup=main_menu_keyboard())
     else:
-        await main_message.message.edit_text(text="Админ-панель:", reply_markup=builder.as_markup())
+        await main_message.message.edit_text(text="Админ-панель:", reply_markup=main_menu_keyboard())
 
 
 
