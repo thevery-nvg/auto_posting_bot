@@ -14,7 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
-
+from sqlalchemy.dialects.postgresql import ARRAY
 from src.config import settings
 
 
@@ -80,8 +80,9 @@ class Post(Base):
     )
     title: Mapped[str] = mapped_column(Text, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
-    media_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    media_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    photos: Mapped[list[str]] = mapped_column(ARRAY(String), default=None)
+    videos: Mapped[list[str]] = mapped_column(ARRAY(String), default=None)
+    document: Mapped[str] = mapped_column(String(255), nullable=True,default=None)
     publish_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     published: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
     message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
