@@ -1,21 +1,10 @@
-import pandas as pd
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from sqlalchemy import func
-from aiogram import Router, F, types, Bot
+from aiogram import Router, F, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup, any_state
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from datetime import datetime
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from io import StringIO
-from typing import Optional
+from aiogram.fsm.state import any_state
 
-from src.core.models import User, UserRole, Stat, Log
-from src.handlers.utils import is_user_admin, log_action, check_admin_access,Buttons,goto_main_menu_btn,Admin, \
+from src.handlers.utils import Buttons, Admin, \
     main_menu_keyboard
-from src.handlers.mock import channels as mock_channels
 
 router = Router(name="admin")
 
