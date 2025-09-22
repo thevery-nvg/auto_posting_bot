@@ -164,43 +164,48 @@ async def process_media(message: types.Message, state: FSMContext):
     )
 
 
-# Хендлер для пропуска медиа
 @router.callback_query(F.data == Buttons.skip_media_callback, Admin.manage_posts_media)
+#пропуск медиа или завершение медиа
 async def skip_media(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
-    await state.update_data(media_type=None, media_file_id=None)
     await state.set_state(Admin.manage_posts_set_time)
     await main_message.message.edit_text(
         "Введите время публикации (например, 2025-04-30 14:00):"
     )
 
 
-# Хендлер для добавления медиа
-@router.message(
-    F.content_type.in_({"photo", "video", "document"}), Admin.manage_posts_media
-)
-async def add_media(message: types.Message, state: FSMContext):
+@router.message(F.content_type.in_({"photo", "video", "document"}), Admin.manage_posts_media)
+async def add_media(message: types.Message, state: FSMContext,bot:Bot):
     data = await state.get_data()
     main_message = data.get("main_message")
-    media_type = None
-    media_file_id = None
-
-    if message.photo:
-        media_type = "photo"
-        media_file_id = message.photo[-1].file_id
-    elif message.video:
-        media_type = "video"
-        media_file_id = message.video.file_id
-    elif message.document:
-        media_type = "document"
-        media_file_id = message.document.file_id
-    await state.update_data(media_type=media_type, media_file_id=media_file_id)
-    await message.delete()
-    await state.set_state(Admin.manage_posts_set_time)
-    await main_message.message.edit_text(
-        "Введите время публикации (например, 2025-04-30 14:00):"
+    photos = data.get("photos", list())
+    videos = data.get("videos", list())
+    docs = data.get("docs", None)
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="Далее", callback_data=Buttons.skip_media_callback
     )
+    builder.adjust(1)
+    if message.photo:
+        photos.append(message.photo[-1].file_id)
+    if message.video:
+        videos.append(message.video.file_id)
+    if message.document:
+        if not docs:
+            docs = message.document.file_id
+        else:
+            await main_message.message.edit_text(
+                chat_id=message.chat.id,
+                text="Можно прикрепить только один документ.\n\nОтправьте фото или видео или нажмите кнопку 'Далее'.",
+                reply_markup=builder.as_markup(),
+            )
+            return
+    await state.update_data(photos=photos, videos=videos, docs=docs)
+    await main_message.message.edit_text(chat_id=message.chat.id,
+                           text= "Отправьте медиа (фото, видео или документ) или нажмите кнопку 'Далее'.",
+                           reply_markup=builder.as_markup())
+
 
 
 # Хендлер для установки времени
