@@ -1,10 +1,16 @@
-from aiogram import Router, F, types
+import random
+from datetime import datetime, timedelta
+
+from aiogram import Router, F, types, Bot
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.core.models import User, UserRole, PostStatus
-from src.handlers.mock import channels, posts_mock
+from handlers.utils import Buttons
+from src.core.models import User, UserRole, PostStatus, Post, Channel
 
 router = Router(name="common")
 example_router = Router(name="example")
@@ -26,32 +32,55 @@ async def cmd_start(message: types.Message, db_session: AsyncSession):
     await message.answer(f"Welcome, {user.id=} {user.username=}!")
 
 
+
 @router.message(Command("write"))
 async def cmd_write(message: types.Message, db_session: AsyncSession):
     logger.info(f"Received /write command from [{message.from_user.id}]")
-    for channel in channels:
-        channel.comment_chat_id=-1002164486161
-        db_session.add(channel)
-    await db_session.commit()
-    logger.info(f"channels writed to db")
-    for post in posts_mock:
-        post.created_by=5528297066
-        db_session.add(post)
-    logger.info(f"posts writed to db")
+    channel = Channel(
+        comment_chat_id=-1002657911055,
+        name="ARCANE",
+        id=-1002164486161,
+        notification_chat_id=0,
+    )
+    await add_channel(db_session, channel)
+    for i in range(20):
+        channel = Channel(
+            comment_chat_id=-1002657911055+i,
+            name=f"Test channel {i}",
+            id=-1002164486161 + i,
+            notification_chat_id=0,
+        )
+        await add_channel(db_session, channel)
+    logger.info(f"channels have been written to db")
+    for i in range(20):
+        post = Post(
+            created_by=5528297066,
+            channel_id=-1002164486161,
+            title=f"Test title {i}",
+            text=f"Test text {i}",
+            publish_time=datetime.now() + timedelta(seconds=random.randint(600, 1800)),
+        )
+        await add_post(db_session, post)
+    logger.info(f"posts have been written to db")
 
-    await db_session.commit()
+
+from src.core.crud import (
+    get_pending_posts,
+    update_post,
+    add_channel,
+    add_post,
+)
 
 
-from src.core.crud import get_pending_posts,update_post
 @router.message(Command("change_status"))
 async def change_status(message: types.Message, db_session: AsyncSession):
     logger.info(f"Received /change_status command from [{message.from_user.id}]")
-    posts=await get_pending_posts(db_session)
+    posts = await get_pending_posts(db_session)
     for post in posts:
         logger.info(f"post status={post.status}")
-        post.status=PostStatus.PUBLISHED
+        post.status = PostStatus.PUBLISHED
         logger.info(f"post status changed ={post.status}")
-        await update_post(db_session,post)
+        await update_post(db_session, post)
 
 
 # Пример хендлера с явным управлением сессией
