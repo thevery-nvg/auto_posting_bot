@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import Optional
 
 from aiogram import types
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -119,10 +120,11 @@ def main_menu_keyboard():
         text=Buttons.manage_posts_text,
         callback_data=Buttons.manage_posts_callback,
     )
-    builder.button(text=Buttons.stats_text, callback_data=Buttons.stats_callback)
+    # builder.button(text=Buttons.stats_text, callback_data=Buttons.stats_callback)
     builder.button(text=Buttons.logs_text, callback_data=Buttons.logs_callback)
     builder.adjust(1)
     return builder.as_markup()
+
 
 def yes_no_keyboard():
     builder = InlineKeyboardBuilder()
@@ -154,15 +156,15 @@ class Admin(StatesGroup):
     manage_posts_set_time = State()
     manage_posts_switch_page = State()
     manage_posts_details = State()
-    change_comment_chat_id= State()
+    change_comment_chat_id = State()
 
     posts_list = State()
     edit_post_text = State()
     edit_post_time = State()
     edit_post_media = State()
     edit_post_title = State()
-    edit_post_channel= State()
-    publish_now=State()
+    edit_post_channel = State()
+    publish_now = State()
 
     remove_post = State()
 
@@ -408,38 +410,34 @@ async def publish_post(post_id: int) -> None:
         db_session = session
         post: Post = await get_post_by_id(db_session, post_id)
         channel: Channel = await get_channel_by_id(db_session, post.channel_id)
-        if post.media_type:
-            if post.media_type=="photo":
-                msg: types.Message = await bot.send_photo(
-                    channel_id=post.channel_id,
-                    photo=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown")
-            elif post.media_type=="video":
-                msg: types.Message = await bot.send_video(
-                    channel_id=post.channel_id,
-                    photo=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown",)
-            else:
-                msg: types.Message = await bot.send_document(
-                    chat_id=post.channel_id,
-                    document=post.media_file_id,
-                    caption=post.text,
-                    parse_mode="Markdown",)
-        else:
-            msg: types.Message = await bot.send_message(
-                chat_id=post.channel_id,
-                text=post.text,
-                parse_mode="Markdown",)
-
-        logger.info(f"Post ID:{post.id} is published in channel {channel.name}[{post.channel_id}]")
-        if channel.notification_chat_id:
-            await bot.send_message(
-                chat_id=channel.notification_chat_id,
-                text=f"Пост <b>{post.title}</b> опубликован в канале <b>{channel.name}[{post.channel_id}]</b>",
-                parse_mode="HTML",
+        if post.document:
+            await bot.send_document(
+                chat_id=post.channel_id, document=post.document, caption=post.text
             )
+        elif post.photos or post.videos:
+            media = []
+            for photo in post.photos:
+                media.append(InputMediaPhoto(media=photo))
+            for video in post.videos:
+                media.append(InputMediaVideo(media=video))
+            media[0].caption = post.text
+            msg = await bot.send_media_group(chat_id=post.channel_id, media=media)
+        else:
+            msg = await bot.send_message(chat_id=post.channel_id, text=post.text)
+        logger.info(
+            f"Post ID:{post.id} is published in channel {channel.name}[{post.channel_id}]"
+        )
+        if channel.notification_chat_id:
+            try:
+                await bot.send_message(
+                    chat_id=channel.notification_chat_id,
+                    text=f"Пост <b>{post.title}</b> опубликован в канале <b>{channel.name}[{post.channel_id}]</b>",
+                    parse_mode="HTML",
+                )
+            except TelegramBadRequest:
+                logger.error(
+                    "Невозможно отправить уведомление о публикации поста, проверьте настройки канала."
+                )
         post.message_id = msg.message_id
         post.published = datetime.now()
         post.status = PostStatus.PUBLISHED
