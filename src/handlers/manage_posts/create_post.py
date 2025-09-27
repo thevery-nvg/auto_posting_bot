@@ -164,8 +164,8 @@ async def process_media(message: types.Message, state: FSMContext):
     )
 
 
-@router.callback_query(F.data == Buttons.skip_media_callback, Admin.manage_posts_media)
-#пропуск медиа или завершение медиа
+@router.callback_query(F.data == Buttons.skip_media_callback, Admin.manage_posts_media,F.content_type.in_({"document"}))
+# пропуск медиа или завершение медиа
 async def skip_media(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     main_message = data.get("main_message")
@@ -174,14 +174,24 @@ async def skip_media(callback: types.CallbackQuery, state: FSMContext):
         "Введите время публикации (например, 2025-04-30 14:00):"
     )
 
+@router.message(F.content_type.in_({"document"}), Admin.manage_posts_media)
+async def add_document(message: types.Message, state: FSMContext,bot:Bot):
+    data = await state.get_data()
+    main_message = data.get("main_message")
+    await state.update_data(document=message.document.file_id)
+    await message.delete()
+    await state.set_state(Admin.manage_posts_set_time)
+    await main_message.message.edit_text(
+        "Введите время публикации (например, 2025-04-30 14:00):"
+    )
 
-@router.message(F.content_type.in_({"photo", "video", "document"}), Admin.manage_posts_media)
+
+@router.message(F.content_type.in_({"photo", "video"}), Admin.manage_posts_media)
 async def add_media(message: types.Message, state: FSMContext,bot:Bot):
     data = await state.get_data()
     main_message = data.get("main_message")
     photos = data.get("photos", list())
     videos = data.get("videos", list())
-    docs = data.get("docs", None)
     builder = InlineKeyboardBuilder()
     builder.button(
         text="Далее", callback_data=Buttons.skip_media_callback
@@ -191,21 +201,11 @@ async def add_media(message: types.Message, state: FSMContext,bot:Bot):
         photos.append(message.photo[-1].file_id)
     if message.video:
         videos.append(message.video.file_id)
-    if message.document:
-        if not docs:
-            docs = message.document.file_id
-        else:
-            await main_message.message.edit_text(
-                chat_id=message.chat.id,
-                text="Можно прикрепить только один документ.\n\nОтправьте фото или видео или нажмите кнопку 'Далее'.",
-                reply_markup=builder.as_markup(),
-            )
-            return
-    await state.update_data(photos=photos, videos=videos, docs=docs)
-    await main_message.message.edit_text(chat_id=message.chat.id,
-                           text= "Отправьте медиа (фото, видео или документ) или нажмите кнопку 'Далее'.",
-                           reply_markup=builder.as_markup())
 
+    await state.update_data(photos=photos, videos=videos)
+    await main_message.message.edit_text(chat_id=message.chat.id,
+                           text= f"Отправьте медиа (фото({len(photos)}) или видео({len(videos)}) или нажмите кнопку 'Далее'.",
+                           reply_markup=builder.as_markup())
 
 
 # Хендлер для установки времени
@@ -234,8 +234,9 @@ async def set_time(
     # Получаем данные из FSM
     channel = data.get("channel")
     text = data.get("text")
-    media_type = data.get("media_type")
-    media_file_id = data.get("media_file_id")
+    photos = data.get("photos", list())
+    videos = data.get("videos", list())
+    document = data.get("document", None)
     title = data.get("title")
 
     # Сохраняем пост в базу
@@ -243,8 +244,9 @@ async def set_time(
         title=title,
         channel_id=channel.id,
         text=text,
-        media_type=media_type,
-        media_file_id=media_file_id,
+        photos=photos,
+        videos=videos,
+        document=document,
         publish_time=publish_time,
         created_by=message.from_user.id,
         status=PostStatus.PENDING,
